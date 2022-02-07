@@ -1,6 +1,7 @@
 from sqlalchemy.engine import create_engine, Engine
 import pandas as pd
 
+
 DB_LOCATION = 'Tender_project.db'
 
 
@@ -8,7 +9,7 @@ class MyDB:
     e: Engine = create_engine(f'sqlite:///{DB_LOCATION}')
 
     @staticmethod
-    def get_full_price_with_item_ktru_by_country(item_ktru_like):
+    def get_full_price_with_item_ktru(item_ktru_like):
         df = pd.read_sql(
             "select sum(item_full_price_in_order) as value, item_country as name from Contract44_items "
             f"where item_ktru like '%{item_ktru_like}%' and name <> '' group by item_country",
@@ -24,4 +25,15 @@ class MyDB:
                        ignore_index=True)
         # print(df)
 
+        return df
+
+    @staticmethod
+    def get_data_with_period(begin, end):
+        df = pd.read_sql(
+            "select sum(item.item_full_price_in_order) as value, c.mounth as month, c.year "
+            "from Contract44_items item inner join Contracts_44fz c on c.id == item.contract "
+            "group by year, month "
+            "order by year, month",
+            con=MyDB.e
+        )
         return df

@@ -1,10 +1,10 @@
+import pandas as pd
 from fpdf import FPDF
 import plotly.express as px
 from plotly.graph_objects import Figure
-import plotly.graph_objects as go
 import tempfile
-
 from db import MyDB
+
 
 pdf_h = 297
 pdf_w = 210
@@ -22,7 +22,7 @@ class MyPdf(FPDF):
         self.add_font('DejaVuBold', '', 'DejaVuSansCondensed-Bold.ttf', uni=True)
         self.set_font(FONT)
 
-    def set_title_page(self, img_path):
+    def set_title_img(self, img_path):
         # img_w, img_h = Image.open(img_path).size
         y = pdf_h * 0.1
         img_h = pdf_h * 0.3
@@ -49,17 +49,16 @@ class MyPdf(FPDF):
         self.set_x(pdf_w * 0.7)
         self.cell(w=0, h=8, align='L', txt="+79162222403", ln=1)
 
+        self.add_page()
+        self.set_x(0)
+
     def add_image_from_fig(self, new_fig: Figure):
         with tempfile.NamedTemporaryFile() as tmpfile:
             new_fig.write_image(tmpfile.name, format="png")
-            self.add_page()
-            self.set_x(0)
             self.image(tmpfile.name, type="png", w=pdf_w * 0.98)
 
 
-def create_fig_for():
-    df = MyDB.get_full_price_with_item_ktru_by_country('специального')
-
+def create_pie_fig(df):
     russia_idx = df[df["name"].str.startswith('РОССИЯ')].index.tolist()
     russia_idx = russia_idx[0] if russia_idx else None
 
@@ -67,12 +66,12 @@ def create_fig_for():
                          values='value',
                          names='name',
                          title='Распределение по странам',
-                         hole=0.3,
+                         hole=0.45,
                          height=600,
                          width=1100)
     fig.update_layout(title_x=0.5,
                       title={"font": {"size": 40, "family": FONT, "color": '#000000'}},
-                      annotations=[dict(text=str(df["value"].sum()),
+                      annotations=[dict(text=f'{df["value"].sum()*100:,} р.',
                                         showarrow=False,
                                         x=0.5,
                                         y=0.5,
@@ -90,10 +89,48 @@ def create_fig_for():
     return fig
 
 
+def create_bar_fig(df: pd.DataFrame):
+    print(df)
+    max_val = df["value"].max()
+    print(max_val)
+    df["month"] = df["month"].astype(str)
+    df["year"] = df["year"].astype(str)
+    fig = px.bar(df,
+                 x="year",
+                 y="value",
+                 title="Объем по годам и месяцам",
+                 color='month',
+                 category_orders={
+                     "year": df["year"].sort_values().unique(),
+                     "month": list(map(str, range(1, 13)))
+                 },
+                 labels={
+                     "month": "Месяц",
+                     "year": "Год",
+                     "value": "Объем"
+                 },
+                 height=600,
+                 width=1100)
+    fig.update_yaxes(ticklabelposition="inside",
+                     # nticks=10,
+                     # tick0=max_val//10,
+                     # dtick=max_val//10
+                    )
+    fig.update_layout(title_x=0.5,
+                      title={"font": {"size": 40, "family": FONT, "color": '#000000'}})
+    return fig
+
+
 def main():
     pdf = MyPdf()
-    pdf.set_title_page('title.jpg')
-    pdf.add_image_from_fig(create_fig_for())
+    pdf.set_title_img('title.jpg')
+
+    df_pie = MyDB.get_full_price_with_item_ktru('специального')
+    pdf.add_image_from_fig(create_pie_fig(df_pie))
+
+    df_bar = MyDB.get_data_with_period(0, 0)
+    pdf.add_image_from_fig(create_bar_fig(df_bar))
+
     pdf.output('test.pdf', 'F')
 
 

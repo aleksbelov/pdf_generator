@@ -3,6 +3,7 @@ from fpdf import FPDF
 import plotly.express as px
 from plotly.graph_objects import Figure
 import tempfile
+from datetime import datetime
 from db import MyDB
 
 
@@ -22,8 +23,7 @@ class MyPdf(FPDF):
         self.add_font('DejaVuBold', '', 'DejaVuSansCondensed-Bold.ttf', uni=True)
         self.set_font(FONT)
 
-    def set_title_img(self, img_path):
-        # img_w, img_h = Image.open(img_path).size
+    def set_title_img(self, img_path: str):
         y = pdf_h * 0.1
         img_h = pdf_h * 0.3
         self.set_y(y)
@@ -58,7 +58,7 @@ class MyPdf(FPDF):
             self.image(tmpfile.name, type="png", w=pdf_w * 0.98)
 
 
-def create_pie_fig(df):
+def create_pie_fig(df: pd.DataFrame) -> Figure:
     russia_idx = df[df["name"].str.startswith('РОССИЯ')].index.tolist()
     russia_idx = russia_idx[0] if russia_idx else None
 
@@ -71,7 +71,7 @@ def create_pie_fig(df):
                          width=1100)
     fig.update_layout(title_x=0.5,
                       title={"font": {"size": 40, "family": FONT, "color": '#000000'}},
-                      annotations=[dict(text=f'{df["value"].sum()*100:,} р.',
+                      annotations=[dict(text=f'{df["value"].sum():,} р.',
                                         showarrow=False,
                                         x=0.5,
                                         y=0.5,
@@ -89,10 +89,7 @@ def create_pie_fig(df):
     return fig
 
 
-def create_bar_fig(df: pd.DataFrame):
-    print(df)
-    max_val = df["value"].max()
-    print(max_val)
+def create_bar_fig(df: pd.DataFrame) -> Figure:
     df["month"] = df["month"].astype(str)
     df["year"] = df["year"].astype(str)
     fig = px.bar(df,
@@ -111,11 +108,7 @@ def create_bar_fig(df: pd.DataFrame):
                  },
                  height=600,
                  width=1100)
-    fig.update_yaxes(ticklabelposition="inside",
-                     # nticks=10,
-                     # tick0=max_val//10,
-                     # dtick=max_val//10
-                    )
+    fig.update_yaxes(ticklabelposition="inside")
     fig.update_layout(title_x=0.5,
                       title={"font": {"size": 40, "family": FONT, "color": '#000000'}})
     return fig
@@ -128,7 +121,7 @@ def main():
     df_pie = MyDB.get_full_price_with_item_ktru('специального')
     pdf.add_image_from_fig(create_pie_fig(df_pie))
 
-    df_bar = MyDB.get_data_with_period(0, 0)
+    df_bar = MyDB.get_data_with_period(datetime(2021, 1, 1), datetime(2021, 7, 1))
     pdf.add_image_from_fig(create_bar_fig(df_bar))
 
     pdf.output('test.pdf', 'F')

@@ -111,7 +111,6 @@ def create_bar_fig(df: pd.DataFrame) -> Figure:
     df["month"] = df["month"].astype(str)
     df["year"] = df["year"].astype(str)
     df["month"] = df['month'].apply(lambda x: months[int(x)])
-    print(df)
     fig = px.bar(df,
                  x="year",
                  y="value",

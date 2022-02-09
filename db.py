@@ -12,11 +12,24 @@ class MyDB:
     @staticmethod
     def get_full_price_with_item_ktru(item_ktru_like: str) -> pd.DataFrame:
         df = pd.read_sql(
-            "select sum(item_full_price_in_order) as value, item_country as name from Contract44_items "
-            f"where item_ktru like '%{item_ktru_like}%' and name <> '' group by item_country",
+            "select sum(item_full_price_in_order) as value, "
+            "case when item_country like '%\n%' then trim(substr(item_country, 0, instr(item_country, '\n'))) "
+            "else trim(item_country) end as name "
+            "from Contract44_items "
+            f"where item_ktru like '%{item_ktru_like}%' and name <> '' "
+            "group by name",
             con=MyDB.e,
         )
-        # print(df)
+
+        print(df)
+
+        def clean_country(s: str):
+            if '\n' in s:
+                return s.split('\n')[0].strip()
+            else:
+                return s.strip()
+
+        df["name"] = df["name"].apply(clean_country)
 
         value_percentage = df["value"] / df["value"].sum()
 

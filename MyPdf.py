@@ -12,6 +12,21 @@ TITLE_TEXT = f'Данные по государственным закупкам
 TITLE_DATE = "29.11.2021"
 FONT = 'DejaVu'
 
+months = {
+    1: "Январь",
+    2: "Февраль",
+    3: "Март",
+    4: "Апрель",
+    5: "Май",
+    6: "Июнь",
+    7: "Июль",
+    8: "Август",
+    9: "Сентябрь",
+    10: "Октябрь",
+    11: "Ноябрь",
+    12: "Декабрь",
+}
+
 
 class MyPdf(FPDF):
     def __init__(self):
@@ -90,6 +105,8 @@ def create_pie_fig(df: pd.DataFrame) -> Figure:
 def create_bar_fig(df: pd.DataFrame) -> Figure:
     df["month"] = df["month"].astype(str)
     df["year"] = df["year"].astype(str)
+    df["month"] = df['month'].apply(lambda x: months[int(x)])
+    print(df)
     fig = px.bar(df,
                  x="year",
                  y="value",
@@ -97,7 +114,7 @@ def create_bar_fig(df: pd.DataFrame) -> Figure:
                  color='month',
                  category_orders={
                      "year": df["year"].sort_values().unique(),
-                     "month": list(map(str, range(1, 13)))
+                     "month": months.values()
                  },
                  labels={
                      "month": "Месяц",

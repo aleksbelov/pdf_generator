@@ -103,6 +103,11 @@ def create_pie_fig(df: pd.DataFrame) -> Figure:
 
 
 def create_bar_fig(df: pd.DataFrame) -> Figure:
+    value_label = "Объем"
+    if df["value"].max() / 1000000000 >= 1:
+        value_label += ", млрд. р."
+    else:
+        value_label += "млн. р."
     df["month"] = df["month"].astype(str)
     df["year"] = df["year"].astype(str)
     df["month"] = df['month'].apply(lambda x: months[int(x)])
@@ -119,7 +124,7 @@ def create_bar_fig(df: pd.DataFrame) -> Figure:
                  labels={
                      "month": "Месяц",
                      "year": "Год",
-                     "value": "Объем"
+                     "value": value_label
                  },
                  height=600,
                  width=1100)

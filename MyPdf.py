@@ -3,13 +3,11 @@ from fpdf import FPDF
 import plotly.express as px
 from plotly.graph_objects import Figure
 import tempfile
+import datetime
 
 
 pdf_h = 297
 pdf_w = 210
-YEAR = 2021
-TITLE_TEXT = f'Данные по государственным закупкам в области утилизации отходов за {YEAR} год'
-TITLE_DATE = "29.11.2021"
 FONT = 'DejaVu'
 
 months = {
@@ -36,7 +34,7 @@ class MyPdf(FPDF):
         self.add_font('DejaVuBold', '', 'DejaVuSansCondensed-Bold.ttf', uni=True)
         self.set_font(FONT)
 
-    def set_title_img(self, img_path: str):
+    def set_title(self, img_path: str, title_text: str):
         y = pdf_h * 0.1
         img_h = pdf_h * 0.3
         self.set_y(y)
@@ -46,18 +44,16 @@ class MyPdf(FPDF):
 
         self.set_xy(pdf_w * (1 - a) / 2, y)
         self.set_font('DejaVuBold', '', 20)
-        self.multi_cell(w=pdf_w * a, h=14, align='C', txt=TITLE_TEXT)
+        self.multi_cell(w=pdf_w * a, h=14, align='C', txt=f"Данные по государственным закупкам c "
+                                                          f"кодовыми словами {title_text}")
 
         self.set_x(pdf_w * (1 - a) / 2)
         self.set_font('DejaVu', '', 14)
-        self.multi_cell(w=pdf_w * a, h=14, align='L', txt=TITLE_DATE)
-
-        # self.set_y(pdf_h * 0.5)
-        # self.image('title_bottom.png', x=pdf_w * (1 - a) / 2, w=pdf_w * a)
+        self.multi_cell(w=pdf_w * a, h=14, align='L', txt=datetime.date.today().strftime("%b-%d-%Y"))
 
         self.set_xy(pdf_w * 0.7, pdf_h * 0.8)
-        self.cell(w=0, h=8, align='L', txt="Ярошенко А.В.", ln=1)
-        self.set_x(pdf_w * 0.7)
+        # self.cell(w=0, h=8, align='L', txt="Ярошенко А.В.", ln=1)
+        # self.set_x(pdf_w * 0.7)
         self.cell(w=0, h=8, align='L', txt="artem@yaroshenko.ru", ln=1)
         self.set_x(pdf_w * 0.7)
         self.cell(w=0, h=8, align='L', txt="+79162222403", ln=1)

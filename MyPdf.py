@@ -76,19 +76,33 @@ class MyPdf(FPDF):
         self.cell(0, 10, 'Страница %s' % self.page_no() + '/{nb}', 0, 0, 'C')
 
 
-def create_pie_fig(df: pd.DataFrame) -> Figure:
+def create_pie_fig(df: pd.DataFrame, year_start=0, year_finish=0, title_info='') -> Figure:
+    title_text = "Распределение по странам "
+    if title_info:
+        title_text += "для " + title_info + ' '
+
+    title_text += f"за {year_start}-{year_finish} года"
+
+    value_percentage = df["value"] / df["value"].sum()
+
+    others_money = df[value_percentage < 0.01]["value"].sum()
+    df.drop(df[value_percentage < 0.01].index, inplace=True)
+    df = pd.concat([df, pd.DataFrame({"name": ["ДРУГИЕ (< 1%)"], "value": [others_money]})],
+                   ignore_index=True)
+    # print(df)
+
     russia_idx = df[df["name"].str.startswith('Росс')].index.tolist()
     russia_idx = russia_idx[0] if russia_idx else None
 
     fig: Figure = px.pie(df,
                          values='value',
                          names='name',
-                         title='Распределение по странам',
+                         title=title_text,
                          hole=0.45,
                          height=600,
                          width=1100)
     fig.update_layout(title_x=0.5,
-                      title={"font": {"size": 40, "family": FONT, "color": '#000000'}},
+                      title={"font": {"size": 14, "family": FONT, "color": '#000000'}},
                       annotations=[dict(text=f'{df["value"].sum():,} р.',
                                         showarrow=False,
                                         x=0.5,

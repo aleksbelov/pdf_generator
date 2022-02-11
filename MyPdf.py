@@ -2,6 +2,7 @@ import pandas as pd
 from fpdf import FPDF
 import plotly.express as px
 from plotly.graph_objects import Figure
+from os import path
 import tempfile
 import datetime
 
@@ -9,6 +10,7 @@ import datetime
 pdf_h = 297
 pdf_w = 210
 FONT = 'DejaVu'
+FONT_ITALIC = 'DejaVuItalic'
 
 months = {
     1: "Январь",
@@ -30,9 +32,11 @@ class MyPdf(FPDF):
     def __init__(self):
         super().__init__(orientation='P', format='A4')
         self.add_page()
-        self.add_font('DejaVu', '', 'DejaVuSansCondensed.ttf', uni=True)
-        self.add_font('DejaVuBold', '', 'DejaVuSansCondensed-Bold.ttf', uni=True)
+        self.add_font('DejaVu', '', path.join('fonts', 'DejaVuSansCondensed.ttf'), uni=True)
+        self.add_font('DejaVuBold', '', path.join('fonts', 'DejaVuSansCondensed-Bold.ttf'), uni=True)
+        self.add_font('DejaVuItalic', '', path.join('fonts', 'DejaVuSerif-Italic.ttf'), uni=True)
         self.set_font(FONT)
+        self.alias_nb_pages()
 
     def set_title(self, img_path: str, title_text: str):
         y = pdf_h * 0.1
@@ -65,6 +69,11 @@ class MyPdf(FPDF):
         with tempfile.NamedTemporaryFile() as tmpfile:
             new_fig.write_image(tmpfile.name, format="png")
             self.image(tmpfile.name, type="png", w=pdf_w * 0.98)
+
+    def footer(self):
+        self.set_y(-15)
+        self.set_font(FONT_ITALIC, size=8)
+        self.cell(0, 10, 'Страница %s' % self.page_no() + '/{nb}', 0, 0, 'C')
 
 
 def create_pie_fig(df: pd.DataFrame) -> Figure:

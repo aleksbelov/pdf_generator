@@ -68,7 +68,7 @@ class MyPdf(FPDF):
 
 
 def create_pie_fig(df: pd.DataFrame) -> Figure:
-    russia_idx = df[df["name"].str.startswith('РОССИЯ')].index.tolist()
+    russia_idx = df[df["name"].str.startswith('Росс')].index.tolist()
     russia_idx = russia_idx[0] if russia_idx else None
 
     fig: Figure = px.pie(df,

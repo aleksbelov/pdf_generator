@@ -21,8 +21,6 @@ class MyDB:
             con=MyDB.e,
         )
 
-        print(df)
-
         def clean_country(s: str):
             if '\n' in s:
                 return s.split('\n')[0].strip()

@@ -155,7 +155,7 @@ def create_pie_fig(df: pd.DataFrame, year_start=0, year_finish=0, title_info='',
     return fig
 
 
-def create_bar_fig(df: pd.DataFrame) -> Figure:
+def create_total_value_bar_fig(df: pd.DataFrame) -> Figure:
     value_label = "Объем"
     if df["value"].max() / 1000000000 >= 1:
         value_label += ", млрд. р."
@@ -187,4 +187,47 @@ def create_bar_fig(df: pd.DataFrame) -> Figure:
                       font_size=14)
     fig.update_traces(textfont_size=20,
                       textfont_color= '#000000')
+    return fig
+
+
+def create_value_bar_fig_by_month_country(df: pd.DataFrame, title_info='', description='') -> Figure:
+    value_label = "Объем"
+    if df["value"].max() / 1000000000 >= 1:
+        value_label += ", млрд. Р."
+    elif df["value"].max() / 1000000 >= 1:
+        value_label += ", млн. Р."
+    elif df["value"].max() / 1000 >= 1:
+        value_label += ", тыс. Р."
+    else:
+        value_label += ", Р."
+    fig = px.bar(df,
+                 x="date",
+                 y="value",
+                 title=f"Объем закупок для {title_info}",
+                 color='name',
+                 labels={
+                     "name": "Страна",
+                     "date": "Месяц",
+                     "value": value_label
+                 },
+                 height=700,
+                 width=1100)
+    fig.update_yaxes(ticklabelposition="inside")
+    fig.update_layout(title_x=0.5,
+                      title={"font": {"size": 20, "family": FONT, "color": '#000000'}},
+                      font_color="black",
+                      font_size=14)
+    fig.update_traces(textfont_size=20,
+                      textfont_color= '#000000')
+
+    if len(description) > 0:
+        fig.add_annotation(
+            xref="x domain", yref="y domain",
+            x=-0.1, y=-0.1,
+            text="Описание: " + description,
+            showarrow=False,
+            font=dict(
+                color="black",
+                size=20))
+
     return fig

@@ -1,5 +1,5 @@
 from datetime import datetime
-from MyPdf import MyPdf, create_bar_fig, create_pie_fig
+from MyPdf import MyPdf, create_total_value_bar_fig, create_pie_fig
 from db import MyDB
 
 

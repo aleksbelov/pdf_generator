@@ -27,6 +27,24 @@ months = {
     12: "Декабрь",
 }
 
+colors = ['rgb(139, 0, 0)',
+         'rgb(0, 250, 154)',
+         'rgb(32, 178, 170)',
+        'rgb(95, 158, 160)',
+        'rgb(218, 112, 214)',
+        'rgb(70, 130, 180)',
+        'rgb(123, 104, 238)',
+        'rgb(255, 215, 0)',
+        'rgb(75, 0, 130)',
+        'rgb(128, 128, 128)',
+        'rgb(0, 128, 0)',
+        'rgb(0, 255, 255)',
+        'rgb(0, 0, 255)',
+          'rgb(255, 250, 205)',
+          'rgb(250, 250, 210)',
+          'rgb(255, 239, 213)',
+        ]
+
 
 class MyPdf(FPDF):
     def __init__(self):
@@ -76,7 +94,9 @@ class MyPdf(FPDF):
         self.cell(0, 10, 'Страница %s' % self.page_no() + '/{nb}', 0, 0, 'C')
 
 
-def create_pie_fig(df: pd.DataFrame, year_start=0, year_finish=0, title_info='') -> Figure:
+def create_pie_fig(df: pd.DataFrame, year_start=0, year_finish=0, title_info='', description='') -> Figure:
+    global colors
+
     title_text = "Распределение по странам "
     if title_info:
         title_text += "для " + title_info + ' '
@@ -99,16 +119,30 @@ def create_pie_fig(df: pd.DataFrame, year_start=0, year_finish=0, title_info='')
                          names='name',
                          title=title_text,
                          hole=0.45,
-                         height=600,
+                         height=700,
                          width=1100)
     fig.update_layout(title_x=0.5,
-                      title={"font": {"size": 14, "family": FONT, "color": '#000000'}},
+                      title={"font": {"size": 20, "family": FONT, "color": '#000000'}},
                       annotations=[dict(text=f'{df["value"].sum():,} р.',
                                         showarrow=False,
                                         x=0.5,
                                         y=0.5,
-                                        font_size=18)])
-    fig.update_traces(textfont_size=24)
+                                        font_size=18)],
+                      font_color="black",
+                      font_size=14)
+    fig.update_traces(textfont_size=20,
+                      textposition='inside',
+                      marker=dict(colors=colors, line=dict(color='#000000', width=1)))
+
+    if len(description) > 0:
+        fig.add_annotation(
+            xref="x domain", yref="y domain",
+            x=-0.1, y=-0.1,
+            text="Описание: " + description,
+            showarrow=False,
+            font=dict(
+                color="black",
+                size=20))
 
     if russia_idx is not None:
         pull = [0] * len(df)
@@ -126,7 +160,7 @@ def create_bar_fig(df: pd.DataFrame) -> Figure:
     if df["value"].max() / 1000000000 >= 1:
         value_label += ", млрд. р."
     else:
-        value_label += "млн. р."
+        value_label += ", млн. р."
     df["month"] = df["month"].astype(str)
     df["year"] = df["year"].astype(str)
     df["month"] = df['month'].apply(lambda x: months[int(x)])
@@ -144,9 +178,13 @@ def create_bar_fig(df: pd.DataFrame) -> Figure:
                      "year": "Год",
                      "value": value_label
                  },
-                 height=600,
+                 height=700,
                  width=1100)
     fig.update_yaxes(ticklabelposition="inside")
     fig.update_layout(title_x=0.5,
-                      title={"font": {"size": 40, "family": FONT, "color": '#000000'}})
+                      title={"font": {"size": 20, "family": FONT, "color": '#000000'}},
+                      font_color="black",
+                      font_size=14)
+    fig.update_traces(textfont_size=20,
+                      textfont_color= '#000000')
     return fig

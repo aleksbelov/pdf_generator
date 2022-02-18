@@ -6,7 +6,6 @@ from os import path
 import tempfile
 import datetime
 
-
 pdf_h = 297
 pdf_w = 210
 FONT = 'DejaVu'
@@ -28,22 +27,22 @@ months = {
 }
 
 colors = ['rgb(139, 0, 0)',
-         'rgb(0, 250, 154)',
-         'rgb(32, 178, 170)',
-        'rgb(95, 158, 160)',
-        'rgb(218, 112, 214)',
-        'rgb(70, 130, 180)',
-        'rgb(123, 104, 238)',
-        'rgb(255, 215, 0)',
-        'rgb(75, 0, 130)',
-        'rgb(128, 128, 128)',
-        'rgb(0, 128, 0)',
-        'rgb(0, 255, 255)',
-        'rgb(0, 0, 255)',
+          'rgb(0, 250, 154)',
+          'rgb(32, 178, 170)',
+          'rgb(95, 158, 160)',
+          'rgb(218, 112, 214)',
+          'rgb(70, 130, 180)',
+          'rgb(123, 104, 238)',
+          'rgb(255, 215, 0)',
+          'rgb(75, 0, 130)',
+          'rgb(128, 128, 128)',
+          'rgb(0, 128, 0)',
+          'rgb(0, 255, 255)',
+          'rgb(0, 0, 255)',
           'rgb(255, 250, 205)',
           'rgb(250, 250, 210)',
           'rgb(255, 239, 213)',
-        ]
+          ]
 
 
 class MyPdf(FPDF, HTMLMixin):
@@ -84,10 +83,31 @@ class MyPdf(FPDF, HTMLMixin):
         self.add_page()
         self.set_x(0)
 
-    def add_image_from_fig(self, new_fig: Figure):
+    def add_image_from_fig(self, new_fig: Figure, title='', description=''):
         with tempfile.NamedTemporaryFile() as tmpfile:
+            self.set_font("DejaVu", '', 10)
+            if len(title) > 0:
+                self.set_x(0)
+                self.multi_cell(pdf_w - 20, self.font_size,
+                                title, border=0, align="C")
+                self.set_x(0)
             new_fig.write_image(tmpfile.name, format="png")
             self.image(tmpfile.name, type="png", w=pdf_w * 0.98)
+            x = 0
+            if len(description) > 0:
+                self.set_x(0)
+                self.multi_cell(pdf_w - 20, self.font_size,
+                                description, border=0, align="C")
+                x = len(self.multi_cell(pdf_w - 20, self.font_size,
+                                        description, border=0,
+                                        align="C", split_only=True))
+                self.set_x(0)
+            while x < 3:
+                if self.will_page_break(self.font_size):
+                    break
+                self.ln()
+                x += 1
+            self.set_x(0)
 
     def footer(self):
         self.set_y(-15)
@@ -154,7 +174,7 @@ def create_pie_fig(df: pd.DataFrame, year_start=0, year_finish=0, title_info='',
                          names='name',
                          title=title_text,
                          hole=0.45,
-                         height=700,
+                         height=650,
                          width=1100)
     fig.update_layout(title_x=0.5,
                       title={"font": {"size": 20, "family": FONT, "color": '#000000'}},
@@ -213,7 +233,7 @@ def create_total_value_bar_fig(df: pd.DataFrame) -> Figure:
                      "year": "Год",
                      "value": value_label
                  },
-                 height=700,
+                 height=650,
                  width=1100)
     fig.update_yaxes(ticklabelposition="inside")
     fig.update_layout(title_x=0.5,
@@ -221,7 +241,7 @@ def create_total_value_bar_fig(df: pd.DataFrame) -> Figure:
                       font_color="black",
                       font_size=14)
     fig.update_traces(textfont_size=20,
-                      textfont_color= '#000000')
+                      textfont_color='#000000')
     return fig
 
 
@@ -242,27 +262,27 @@ def create_value_bar_fig_by_month_country(df: pd.DataFrame, title_info='', descr
     fig = px.bar(df,
                  x="date",
                  y="value",
-                 title=f"Объем закупок РФ/Импорт{title_text}",
                  color='country',
                  labels={
                      "country": "Страна",
                      "date": "Месяц",
                      "value": value_label
                  },
-                 height=700,
+                 height=650,
                  width=1100)
     fig.update_yaxes(ticklabelposition="inside")
-    fig.update_layout(title_x=0.5,
-                      title={"font": {"size": 20, "family": FONT, "color": '#000000'}},
-                      font_color="black",
-                      font_size=14)
+    fig.update_layout(  # title_x=0.5,
+        # title={"font": {"size": 20, "family": FONT, "color": '#000000'}},
+        font_color="black",
+        font_size=14,
+        margin=dict(l=30, r=30, t=5, b=20))
     fig.update_traces(textfont_size=20,
-                      textfont_color= '#000000')
+                      textfont_color='#000000')
 
     if len(description) > 0:
         fig.add_annotation(
             xref="x domain", yref="y domain",
-            x=-0.1, y=-0.1,
+            x=-0.1, y=-0.2,
             text="Описание: " + description,
             showarrow=False,
             font=dict(

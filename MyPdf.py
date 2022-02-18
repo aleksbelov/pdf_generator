@@ -1,5 +1,5 @@
 import pandas as pd
-from fpdf import FPDF
+from fpdf import FPDF, HTMLMixin
 import plotly.express as px
 from plotly.graph_objects import Figure
 from os import path
@@ -46,13 +46,14 @@ colors = ['rgb(139, 0, 0)',
         ]
 
 
-class MyPdf(FPDF):
+class MyPdf(FPDF, HTMLMixin):
     def __init__(self):
         super().__init__(orientation='P', format='A4')
         self.add_page()
         self.add_font('DejaVu', '', path.join('fonts', 'DejaVuSansCondensed.ttf'), uni=True)
         self.add_font('DejaVuBold', '', path.join('fonts', 'DejaVuSansCondensed-Bold.ttf'), uni=True)
         self.add_font('DejaVuItalic', '', path.join('fonts', 'DejaVuSerif-Italic.ttf'), uni=True)
+        self.add_font("Arial", '', path.join('fonts', 'arial.ttf'), uni=True)
         self.set_font(FONT)
         self.alias_nb_pages()
 
@@ -93,6 +94,36 @@ class MyPdf(FPDF):
         self.set_font(FONT_ITALIC, size=8)
         self.cell(0, 10, 'Страница %s' % self.page_no() + '/{nb}', 0, 0, 'C')
 
+    # Не работает!
+    def will_page_break(self, height):
+        return (
+                self.y + height > self.page_break_trigger
+                and not self.in_footer
+                and self.accept_page_break
+        )
+
+    # Не работает!
+    def render_table_header(self, col_names):
+        for col_name in col_names:
+            self.cell(self.w / len(col_names), self.font_size * 2, col_name, border=1)
+        self.ln(self.font_size * 2)
+
+    # Не работает!
+    def write_df(self, df: pd.DataFrame):
+        col_names = list(df.columns)
+        col_data = [df.iloc[i].to_list() for i in range(len(df))]
+
+        line_height = self.font_size * 2
+        col_width = self.w / len(col_names)
+
+        self.render_table_header(col_names)
+        for row in col_data:
+            # if self.will_page_break(line_height):
+            #     self.render_table_header(col_names)
+            for datum in row:
+                self.multi_cell(col_width, line_height, str(datum), border=1)
+            self.ln(line_height)
+
 
 def create_pie_fig(df: pd.DataFrame, year_start=0, year_finish=0, title_info='', description='') -> Figure:
     global colors
@@ -111,8 +142,12 @@ def create_pie_fig(df: pd.DataFrame, year_start=0, year_finish=0, title_info='',
                    ignore_index=True)
     # print(df)
 
-    russia_idx = df[df["name"].str.startswith('Росс')].index.tolist()
-    russia_idx = russia_idx[0] if russia_idx else None
+    # russia_idx = df[df["name"].str.startswith('Росс')].index.tolist()
+    # russia_idx = russia_idx[0] if russia_idx else None
+    russia_idx = -1
+    for i in range(len(df)):
+        if df.at[i, "name"].find("Росс") != -1:
+            russia_idx = i
 
     fig: Figure = px.pie(df,
                          values='value',
@@ -144,12 +179,12 @@ def create_pie_fig(df: pd.DataFrame, year_start=0, year_finish=0, title_info='',
                 color="black",
                 size=20))
 
-    if russia_idx is not None:
+    if russia_idx != -1:
         pull = [0] * len(df)
         pull[russia_idx] = 0.1
 
         colors = [None] * len(df)
-        colors[russia_idx] = "red"
+        colors[russia_idx] = "#00008B"
         fig.update_traces(pull=pull, marker=dict(colors=colors))
 
     return fig
@@ -200,13 +235,17 @@ def create_value_bar_fig_by_month_country(df: pd.DataFrame, title_info='', descr
         value_label += ", тыс. Р."
     else:
         value_label += ", Р."
+
+    title_text = ''
+    if title_info:
+        title_text = " для " + title_info
     fig = px.bar(df,
                  x="date",
                  y="value",
-                 title=f"Объем закупок для {title_info}",
-                 color='name',
+                 title=f"Объем закупок РФ/Импорт{title_text}",
+                 color='country',
                  labels={
-                     "name": "Страна",
+                     "country": "Страна",
                      "date": "Месяц",
                      "value": value_label
                  },

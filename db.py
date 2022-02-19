@@ -1,8 +1,47 @@
 from sqlalchemy.engine import create_engine, Engine
 import pandas as pd
-from datetime import datetime
 
 DB_LOCATION = 'RusTenderDataBase.db'
+
+
+def where_request_part_for_code_words(code_frases: list) -> str:
+    query_text = """ WHERE ("""
+    k = 0
+    for code_frase in code_frases:
+        k+=1
+        code_words_untreated = code_frase.strip().split(" ")
+
+        code_words = []
+        for code_word in code_words_untreated:
+            code_words.append(code_word.lower())
+            code_words.append(code_word[0].upper() + code_word[1:].lower())
+
+        # Формируем параметры запроса (WHERE)
+
+        query_text += """("""
+        for i in range(len(code_words) // 2):
+            if i != 0:
+                query_text += " AND "
+            query_text += """(Products.KTRUname LIKE "%""" + code_words[2 * i] + """%" OR Products.KTRUname LIKE "%""" + code_words[
+                2 * i + 1] + """%")"""
+
+        query_text += """)"""
+
+        query_text += """ OR """
+
+        query_text += """("""
+        for i in range(len(code_words) // 2):
+            if i != 0:
+                query_text += " AND "
+            query_text += """(Products.name LIKE "%""" + code_words[2 * i] + """%" OR Products.name LIKE "%""" + code_words[
+                2 * i + 1] + """%")"""
+
+        query_text += """)"""
+        if k != len(code_frases):
+            query_text += """ OR """
+
+    query_text += """)"""
+    return query_text
 
 
 class MyDB:
@@ -21,28 +60,16 @@ class MyDB:
         )
 
     @staticmethod
-    def get_data_with_period(begin: datetime, end: datetime) -> pd.DataFrame:
-        """
-        Day will be ignored
-        :param begin:
-        :param end:
-        :return:
-        """
-
-        def d1_less_than_d2(d1: datetime, d2: datetime):
-            return (d2.year - d1.year) * 12 + (d2.month - d1.month) >= 0
-
-        def d_between(d):
-            d_datetime = datetime(d["year"], d["month"], 1)
-            return d1_less_than_d2(begin, d_datetime) and d1_less_than_d2(d_datetime, end)
-
-        df = pd.read_sql(
-            "select sum(item.item_full_price_in_order) as value, c.mounth as month, c.year "
-            "from Contract44_items item inner join Contracts_44fz c on c.id == item.contract "
-            "group by year, month "
-            "order by year, month",
-            con=MyDB.e
-        )
-        df = df[df.apply(d_between, axis=1)]
-
-        return df
+    def get_data_with_period(code_words: list, year_start: int, year_finish: int) -> pd.DataFrame:
+        return pd.read_sql(f"""SELECT
+                                SUM(Products.sumRUR) as value,
+                                C.publishMonth as month,
+                                C.publishYear as year
+                            FROM Products
+                            INNER JOIN Contracts C on Products.contractId = C.id
+                            {where_request_part_for_code_words(code_words)} 
+                            AND year <= {year_finish} AND year >= {year_start} 
+                            GROUP BY year, month
+                            ORDER BY year, month""",
+                           con=MyDB.e
+                           )

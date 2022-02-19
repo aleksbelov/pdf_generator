@@ -6,7 +6,6 @@ from os import path
 import tempfile
 import datetime
 
-
 pdf_h = 297
 pdf_w = 210
 FONT = 'DejaVu'
@@ -28,22 +27,22 @@ months = {
 }
 
 colors = ['rgb(139, 0, 0)',
-         'rgb(0, 250, 154)',
-         'rgb(32, 178, 170)',
-        'rgb(95, 158, 160)',
-        'rgb(218, 112, 214)',
-        'rgb(70, 130, 180)',
-        'rgb(123, 104, 238)',
-        'rgb(255, 215, 0)',
-        'rgb(75, 0, 130)',
-        'rgb(128, 128, 128)',
-        'rgb(0, 128, 0)',
-        'rgb(0, 255, 255)',
-        'rgb(0, 0, 255)',
+          'rgb(0, 250, 154)',
+          'rgb(32, 178, 170)',
+          'rgb(95, 158, 160)',
+          'rgb(218, 112, 214)',
+          'rgb(70, 130, 180)',
+          'rgb(123, 104, 238)',
+          'rgb(255, 215, 0)',
+          'rgb(75, 0, 130)',
+          'rgb(128, 128, 128)',
+          'rgb(0, 128, 0)',
+          'rgb(0, 255, 255)',
+          'rgb(0, 0, 255)',
           'rgb(255, 250, 205)',
           'rgb(250, 250, 210)',
           'rgb(255, 239, 213)',
-        ]
+          ]
 
 
 class MyPdf(FPDF):
@@ -55,18 +54,19 @@ class MyPdf(FPDF):
         self.add_font('DejaVuItalic', '', path.join('fonts', 'DejaVuSerif-Italic.ttf'), uni=True)
         self.set_font(FONT)
         self.alias_nb_pages()
+        self._toc_entries = {}
 
-    def set_title(self, img_path: str, title_text: str):
+    def set_title_img(self, img_path: str, title_text: str):
         y = pdf_h * 0.1
         img_h = pdf_h * 0.3
         self.set_y(y)
         a = 0.8
         self.image(img_path, x=pdf_w * (1 - a) / 2, w=pdf_w * a)
-        y += img_h + 7
+        y += img_h
 
         self.set_xy(pdf_w * (1 - a) / 2, y)
         self.set_font('DejaVuBold', '', 20)
-        self.multi_cell(w=pdf_w * a, h=14, align='C', txt=f"Данные по государственным закупкам c "
+        self.multi_cell(w=pdf_w * a, h=self.font_size*2, align='C', txt=f"Данные по государственным закупкам c "
                                                           f"кодовыми словами {title_text}")
 
         self.set_x(pdf_w * (1 - a) / 2)
@@ -92,6 +92,19 @@ class MyPdf(FPDF):
         self.set_y(-15)
         self.set_font(FONT_ITALIC, size=8)
         self.cell(0, 10, 'Страница %s' % self.page_no() + '/{nb}', 0, 0, 'C')
+
+    def add_toc_entry(self, txt):
+        link = self.add_link()
+        self.set_link(link, page=self.page)
+        self._toc_entries[link] = (txt, self.page)
+
+    def insert_toc(self):
+        self.add_page()
+        self.cell(w=0, h=self.font_size*2, txt="Оглавление", align="C", ln=1)
+
+        self.set_font_size(10)
+        for link, (txt, page) in self._toc_entries.items():
+            self.cell(w=0, h=self.font_size*1.5, txt=f"{page:03} - {txt}", link=link, align="L", ln=1)
 
 
 def merge_minorities(df: pd.DataFrame) -> pd.DataFrame:
@@ -190,7 +203,7 @@ def create_total_value_bar_fig(df: pd.DataFrame) -> Figure:
                       font_color="black",
                       font_size=14)
     fig.update_traces(textfont_size=20,
-                      textfont_color= '#000000')
+                      textfont_color='#000000')
     return fig
 
 
@@ -222,7 +235,7 @@ def create_value_bar_fig_by_month_country(df: pd.DataFrame, title_info='', descr
                       font_color="black",
                       font_size=14)
     fig.update_traces(textfont_size=20,
-                      textfont_color= '#000000')
+                      textfont_color='#000000')
 
     if len(description) > 0:
         fig.add_annotation(

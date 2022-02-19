@@ -94,6 +94,16 @@ class MyPdf(FPDF):
         self.cell(0, 10, 'Страница %s' % self.page_no() + '/{nb}', 0, 0, 'C')
 
 
+def merge_minorities(df: pd.DataFrame) -> pd.DataFrame:
+    value_percentage = df["value"] / df["value"].sum()
+
+    others_money = df[value_percentage < 0.01]["value"].sum()
+    df.drop(df[value_percentage < 0.01].index, inplace=True)
+    df = pd.concat([df, pd.DataFrame({"name": ["ДРУГИЕ (< 1%)"], "value": [others_money]})],
+                   ignore_index=True)
+    return df
+
+
 def create_pie_fig(df: pd.DataFrame, year_start=0, year_finish=0, title_info='', description='') -> Figure:
     global colors
 
@@ -103,13 +113,7 @@ def create_pie_fig(df: pd.DataFrame, year_start=0, year_finish=0, title_info='',
 
     title_text += f"за {year_start}-{year_finish} года"
 
-    value_percentage = df["value"] / df["value"].sum()
-
-    others_money = df[value_percentage < 0.01]["value"].sum()
-    df.drop(df[value_percentage < 0.01].index, inplace=True)
-    df = pd.concat([df, pd.DataFrame({"name": ["ДРУГИЕ (< 1%)"], "value": [others_money]})],
-                   ignore_index=True)
-    # print(df)
+    df = merge_minorities(df)
 
     russia_idx = df[df["name"].str.startswith('Росс')].index.tolist()
     russia_idx = russia_idx[0] if russia_idx else None

@@ -98,9 +98,9 @@ class MyPdf(FPDF):
         self.set_link(link, page=self.page)
         self._toc_entries[link] = (txt, self.page)
 
-    def insert_toc(self):
+    def insert_toc(self, toc_title:str = "Оглавление"):
         self.add_page()
-        self.cell(w=0, h=self.font_size*2, txt="Оглавление", align="C", ln=1)
+        self.cell(w=0, h=self.font_size*2, txt=toc_title, align="C", ln=1)
 
         self.set_font_size(10)
         for link, (txt, page) in self._toc_entries.items():

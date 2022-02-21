@@ -6,11 +6,6 @@ from os import path
 import tempfile
 import datetime
 
-pdf_h = 297
-pdf_w = 210
-FONT = 'DejaVu'
-FONT_ITALIC = 'DejaVuItalic'
-
 months = {
     1: "Январь",
     2: "Февраль",
@@ -44,67 +39,72 @@ colors = ['rgb(139, 0, 0)',
           'rgb(255, 239, 213)',
           ]
 
+FONT = 'DejaVu'
+FONT_ITALIC = 'DejaVuItalic'
+H1_SIZE = 20
+
 
 class MyPdf(FPDF):
-    def __init__(self):
+    def __init__(self, toc=True):
         super().__init__(orientation='P', format='A4')
-        self.add_page()
-        self.add_font('DejaVu', '', path.join('fonts', 'DejaVuSansCondensed.ttf'), uni=True)
-        self.add_font('DejaVuBold', '', path.join('fonts', 'DejaVuSansCondensed-Bold.ttf'), uni=True)
-        self.add_font('DejaVuItalic', '', path.join('fonts', 'DejaVuSerif-Italic.ttf'), uni=True)
+        self.add_font('DejaVu', fname=path.join('fonts', 'DejaVuSansCondensed.ttf'), uni=True)
+        self.add_font('DejaVuBold', fname=path.join('fonts', 'DejaVuSansCondensed-Bold.ttf'), uni=True)
+        self.add_font('DejaVuItalic', fname=path.join('fonts', 'DejaVuSerif-Italic.ttf'), uni=True)
         self.set_font(FONT)
         self.alias_nb_pages()
-        self._toc_entries = {}
+        self.toc_entries = {} if toc else None
 
-    def set_title_img(self, img_path: str, title_text: str):
-        y = pdf_h * 0.1
-        img_h = pdf_h * 0.3
-        self.set_y(y)
-        a = 0.8
-        self.image(img_path, x=pdf_w * (1 - a) / 2, w=pdf_w * a)
-        y += img_h
+    def set_title_page(self, img_path: str, title_text: str):
+        self.add_page()
+        self.image(img_path, w=self.epw)
 
-        self.set_xy(pdf_w * (1 - a) / 2, y)
-        self.set_font('DejaVuBold', '', 20)
-        self.multi_cell(w=pdf_w * a, h=self.font_size*2, align='C', txt=f"Данные по государственным закупкам c "
-                                                          f"кодовыми словами {title_text}")
+        self.set_font('DejaVuBold', '', H1_SIZE)
+        self.ln(5)
+        self.multi_cell(w=0, h=self.font_size * 2, align='C', txt=f"Данные по государственным закупкам c "
+                                                                  f"кодовыми словами {title_text}", ln=1)
 
-        self.set_x(pdf_w * (1 - a) / 2)
-        self.set_font('DejaVu', '', 14)
-        self.multi_cell(w=pdf_w * a, h=14, align='L', txt=datetime.date.today().strftime("%b-%d-%Y"))
+        self.set_font(FONT, '', 14)
+        self.multi_cell(w=0, h=14, align='L', txt=datetime.date.today().strftime("%b-%d-%Y"), ln=1)
 
-        self.set_xy(pdf_w * 0.7, pdf_h * 0.8)
+        self.ln(100)
         # self.cell(w=0, h=8, align='L', txt="Ярошенко А.В.", ln=1)
-        # self.set_x(pdf_w * 0.7)
-        self.cell(w=0, h=8, align='L', txt="artem@yaroshenko.ru", ln=1)
-        self.set_x(pdf_w * 0.7)
-        self.cell(w=0, h=8, align='L', txt="+79162222403", ln=1)
+        self.cell(w=0, h=8, align='R', txt="artem@yaroshenko.ru", ln=1)
+        self.cell(w=0, h=8, align='R', txt="+79162222403", ln=1)
 
         self.add_page()
-        self.set_x(0)
+
+        if self.toc_entries is not None:
+            self.insert_toc_placeholder(render_toc)
 
     def add_image_from_fig(self, new_fig: Figure):
         with tempfile.NamedTemporaryFile() as tmpfile:
             new_fig.write_image(tmpfile.name, format="png")
-            self.image(tmpfile.name, type="png", w=pdf_w * 0.98)
+            self.image(tmpfile.name, type="png", w=self.epw)
 
     def footer(self):
         self.set_y(-15)
         self.set_font(FONT_ITALIC, size=8)
-        self.cell(0, 10, 'Страница %s' % self.page_no() + '/{nb}', 0, 0, 'C')
+        self.cell(0, 10, f'Страница {self.page_no()}/' + '{nb}', 0, 1, 'C')
 
     def add_toc_entry(self, txt):
+        if self.toc_entries is None:
+            raise Exception("Unable add toc entry. Use toc=True param while calling constructor")
+        if self.page < 1:
+            raise Exception("Too early toc entry adding. Page = 0")
         link = self.add_link()
         self.set_link(link, page=self.page)
-        self._toc_entries[link] = (txt, self.page)
+        self.toc_entries[link] = (txt, self.page)
 
-    def insert_toc(self, toc_title:str = "Оглавление"):
-        self.add_page()
-        self.cell(w=0, h=self.font_size*2, txt=toc_title, align="C", ln=1)
 
-        self.set_font_size(10)
-        for link, (txt, page) in self._toc_entries.items():
-            self.cell(w=0, h=self.font_size*1.5, txt=f"{page:03} - {txt}", link=link, align="L", ln=1)
+def render_toc(pdf: MyPdf, _):
+    pdf.set_font(FONT, size=H1_SIZE)
+    pdf.cell(w=0, h=pdf.font_size*2, txt="Содержание", align="C", ln=1)
+
+    pdf.set_font_size(15)
+    for link, (txt, page) in pdf.toc_entries.items():
+        dots = ". " * int((pdf.epw - pdf.get_string_width(txt + str(page)))/pdf.get_string_width(". ") - 1.5)
+        pdf.cell(w=0, h=pdf.font_size * 1.5, txt=f"{txt}", link=link, align="L")
+        pdf.cell(w=0, h=pdf.font_size * 1.5, txt=f"{dots} {page}", link=link, align="R", ln=1)
 
 
 def merge_minorities(df: pd.DataFrame) -> pd.DataFrame:
@@ -139,7 +139,7 @@ def create_pie_fig(df: pd.DataFrame, year_start=0, year_finish=0, title_info='',
                          height=700,
                          width=1100)
     fig.update_layout(title_x=0.5,
-                      title={"font": {"size": 20, "family": FONT, "color": '#000000'}},
+                      title={"font": {"size": H1_SIZE, "family": FONT, "color": '#000000'}},
                       annotations=[dict(text=f'{df["value"].sum():,} р.',
                                         showarrow=False,
                                         x=0.5,

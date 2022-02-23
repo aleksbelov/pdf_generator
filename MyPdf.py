@@ -189,11 +189,8 @@ def create_pie_fig(df: pd.DataFrame, year_start=0, year_finish=0, title_info='',
 
 
 def create_total_value_bar_fig(df: pd.DataFrame) -> Figure:
-    value_label = "Объем"
-    if df["value"].max() / 1000000000 >= 1:
-        value_label += ", млрд. р."
-    else:
-        value_label += ", млн. р."
+    value_label = "Объем рублей"
+
     df["month"] = df["month"].astype(str)
     df["year"] = df["year"].astype(str)
     df["month"] = df['month'].apply(lambda x: months[int(x)])
@@ -226,13 +223,13 @@ def create_total_value_bar_fig(df: pd.DataFrame) -> Figure:
 def create_value_bar_fig_by_month_country(df: pd.DataFrame, title_info='', description='') -> Figure:
     value_label = "Объем"
     if df["value"].max() / 1000000000 >= 1:
-        value_label += ", млрд. Р."
+        value_label += ", млрд. Рублей"
     elif df["value"].max() / 1000000 >= 1:
-        value_label += ", млн. Р."
+        value_label += ", млн. Рублей"
     elif df["value"].max() / 1000 >= 1:
-        value_label += ", тыс. Р."
+        value_label += ", тыс. Рублей"
     else:
-        value_label += ", Р."
+        value_label += ", Рублей"
 
     title_text = ''
     if title_info:
@@ -241,6 +238,10 @@ def create_value_bar_fig_by_month_country(df: pd.DataFrame, title_info='', descr
                  x="date",
                  y="value",
                  color='country',
+                 category_orders={
+                     "year": df["year"].sort_values().unique(),
+                     "month": months.values()
+                 },
                  labels={
                      "country": "Страна",
                      "date": "Месяц",

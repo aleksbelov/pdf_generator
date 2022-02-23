@@ -87,12 +87,11 @@ class MyPdf(FPDF):
                 self.multi_cell(pdf_w - 20, self.font_size,
                                 title, border=0, align="C")
             new_fig.write_image(tmpfile.name, format="png")
-            self.set_x(0)
+            self.set_x(20)
             self.image(tmpfile.name, type="png", w=self.epw)
             if len(description) > 0:
                 self.multi_cell(pdf_w - 20, self.font_size,
                                 description, border=0, align="C")
-            self.add_page()
 
     def footer(self):
         self.set_y(-15)

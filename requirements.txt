@@ -1,5 +1,5 @@
 pandas
-fpdf
+fpdf2
 plotly
 sqlalchemy
 kaleido

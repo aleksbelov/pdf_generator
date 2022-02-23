@@ -6,10 +6,9 @@ from os import path
 import tempfile
 import datetime
 
+
 pdf_h = 297
 pdf_w = 210
-FONT = 'DejaVu'
-FONT_ITALIC = 'DejaVuItalic'
 
 months = {
     1: "Январь",
@@ -44,105 +43,91 @@ colors = ['rgb(139, 0, 0)',
           'rgb(255, 239, 213)',
           ]
 
+FONT = 'DejaVu'
+FONT_ITALIC = 'DejaVuItalic'
+H1_SIZE = 20
 
-class MyPdf(FPDF, HTMLMixin):
-    def __init__(self):
+
+class MyPdf(FPDF):
+    def __init__(self, toc=False):
         super().__init__(orientation='P', format='A4')
-        self.add_page()
-        self.add_font('DejaVu', '', path.join('fonts', 'DejaVuSansCondensed.ttf'), uni=True)
-        self.add_font('DejaVuBold', '', path.join('fonts', 'DejaVuSansCondensed-Bold.ttf'), uni=True)
-        self.add_font('DejaVuItalic', '', path.join('fonts', 'DejaVuSerif-Italic.ttf'), uni=True)
+        self.add_font('DejaVu', fname=path.join('fonts', 'DejaVuSansCondensed.ttf'), uni=True)
+        self.add_font('DejaVuBold', fname=path.join('fonts', 'DejaVuSansCondensed-Bold.ttf'), uni=True)
+        self.add_font('DejaVuItalic', fname=path.join('fonts', 'DejaVuSerif-Italic.ttf'), uni=True)
         self.add_font("Arial", '', path.join('fonts', 'arial.ttf'), uni=True)
         self.set_font(FONT)
         self.alias_nb_pages()
+        self.toc_entries = {} if toc else None
 
-    def set_title(self, img_path: str, title_text: str):
-        y = pdf_h * 0.1
-        img_h = pdf_h * 0.3
-        self.set_y(y)
-        a = 0.8
-        self.image(img_path, x=pdf_w * (1 - a) / 2, w=pdf_w * a)
-        y += img_h + 7
+    def set_title_page(self, img_path: str, title_text: str):
+        self.add_page()
+        self.image(img_path, w=self.epw)
 
-        self.set_xy(pdf_w * (1 - a) / 2, y)
-        self.set_font('DejaVuBold', '', 20)
-        self.multi_cell(w=pdf_w * a, h=14, align='C', txt=f"Данные по государственным закупкам c "
-                                                          f"кодовыми словами {title_text}")
+        self.set_font('DejaVuBold', '', H1_SIZE)
+        self.ln(5)
+        self.multi_cell(w=0, h=self.font_size * 2, align='C', txt=f"Данные по государственным закупкам c "
+                                                                  f"кодовыми словами {title_text}", ln=1)
 
-        self.set_x(pdf_w * (1 - a) / 2)
-        self.set_font('DejaVu', '', 14)
-        self.multi_cell(w=pdf_w * a, h=14, align='L', txt=datetime.date.today().strftime("%b-%d-%Y"))
+        self.set_font(FONT, '', 14)
+        self.multi_cell(w=0, h=14, align='L', txt=datetime.date.today().strftime("%b-%d-%Y"), ln=1)
 
-        self.set_xy(pdf_w * 0.7, pdf_h * 0.8)
-        # self.cell(w=0, h=8, align='L', txt="Ярошенко А.В.", ln=1)
-        # self.set_x(pdf_w * 0.7)
-        self.cell(w=0, h=8, align='L', txt="artem@yaroshenko.ru", ln=1)
-        self.set_x(pdf_w * 0.7)
-        self.cell(w=0, h=8, align='L', txt="+79162222403", ln=1)
+        self.ln(100)
+        self.cell(w=0, h=8, align='R', txt="artem@yaroshenko.ru", ln=1)
+        self.cell(w=0, h=8, align='R', txt="+79162222403", ln=1)
 
         self.add_page()
-        self.set_x(0)
+
+        if self.toc_entries is not None:
+            self.insert_toc_placeholder(render_toc)
 
     def add_image_from_fig(self, new_fig: Figure, title='', description=''):
         with tempfile.NamedTemporaryFile() as tmpfile:
             self.set_font("DejaVu", '', 10)
             if len(title) > 0:
-                self.set_x(0)
                 self.multi_cell(pdf_w - 20, self.font_size,
                                 title, border=0, align="C")
-                self.set_x(0)
             new_fig.write_image(tmpfile.name, format="png")
-            self.image(tmpfile.name, type="png", w=pdf_w * 0.98)
-            x = 0
+            self.set_x(0)
+            self.image(tmpfile.name, type="png", w=self.epw)
             if len(description) > 0:
-                self.set_x(0)
                 self.multi_cell(pdf_w - 20, self.font_size,
                                 description, border=0, align="C")
-                x = len(self.multi_cell(pdf_w - 20, self.font_size,
-                                        description, border=0,
-                                        align="C", split_only=True))
-                self.set_x(0)
-            while x < 3:
-                if self.will_page_break(self.font_size):
-                    break
-                self.ln()
-                x += 1
-            self.set_x(0)
+            self.add_page()
 
     def footer(self):
         self.set_y(-15)
         self.set_font(FONT_ITALIC, size=8)
-        self.cell(0, 10, 'Страница %s' % self.page_no() + '/{nb}', 0, 0, 'C')
+        self.cell(0, 10, f'Страница {self.page_no()}/' + '{nb}', 0, 1, 'C')
 
-    # Не работает!
-    def will_page_break(self, height):
-        return (
-                self.y + height > self.page_break_trigger
-                and not self.in_footer
-                and self.accept_page_break
-        )
+    def add_toc_entry(self, txt):
+        if self.toc_entries is None:
+            raise Exception("Unable add toc entry. Use toc=True param while calling constructor")
+        if self.page < 1:
+            raise Exception("Too early toc entry adding. Page = 0")
+        link = self.add_link()
+        self.set_link(link, page=self.page)
+        self.toc_entries[link] = (txt, self.page)
 
-    # Не работает!
-    def render_table_header(self, col_names):
-        for col_name in col_names:
-            self.cell(self.w / len(col_names), self.font_size * 2, col_name, border=1)
-        self.ln(self.font_size * 2)
 
-    # Не работает!
-    def write_df(self, df: pd.DataFrame):
-        col_names = list(df.columns)
-        col_data = [df.iloc[i].to_list() for i in range(len(df))]
+def render_toc(pdf: MyPdf, _):
+    pdf.set_font(FONT, size=H1_SIZE)
+    pdf.cell(w=0, h=pdf.font_size*2, txt="Содержание", align="C", ln=1)
 
-        line_height = self.font_size * 2
-        col_width = self.w / len(col_names)
+    pdf.set_font_size(15)
+    for link, (txt, page) in pdf.toc_entries.items():
+        dots = ". " * int((pdf.epw - pdf.get_string_width(txt + str(page)))/pdf.get_string_width(". ") - 1.5)
+        pdf.cell(w=0, h=pdf.font_size * 1.5, txt=f"{txt}", link=link, align="L")
+        pdf.cell(w=0, h=pdf.font_size * 1.5, txt=f"{dots} {page}", link=link, align="R", ln=1)
 
-        self.render_table_header(col_names)
-        for row in col_data:
-            # if self.will_page_break(line_height):
-            #     self.render_table_header(col_names)
-            for datum in row:
-                self.multi_cell(col_width, line_height, str(datum), border=1)
-            self.ln(line_height)
+
+def merge_minorities(df: pd.DataFrame) -> pd.DataFrame:
+    value_percentage = df["value"] / df["value"].sum()
+
+    others_money = df[value_percentage < 0.01]["value"].sum()
+    df.drop(df[value_percentage < 0.01].index, inplace=True)
+    df = pd.concat([df, pd.DataFrame({"name": ["ДРУГИЕ (< 1%)"], "value": [others_money]})],
+                   ignore_index=True)
+    return df
 
 
 def create_pie_fig(df: pd.DataFrame, year_start=0, year_finish=0, title_info='', description='') -> Figure:
@@ -154,13 +139,7 @@ def create_pie_fig(df: pd.DataFrame, year_start=0, year_finish=0, title_info='',
 
     title_text += f"за {year_start}-{year_finish} года"
 
-    value_percentage = df["value"] / df["value"].sum()
-
-    others_money = df[value_percentage < 0.01]["value"].sum()
-    df.drop(df[value_percentage < 0.01].index, inplace=True)
-    df = pd.concat([df, pd.DataFrame({"name": ["ДРУГИЕ (< 1%)"], "value": [others_money]})],
-                   ignore_index=True)
-    # print(df)
+    df = merge_minorities(df)
 
     # russia_idx = df[df["name"].str.startswith('Росс')].index.tolist()
     # russia_idx = russia_idx[0] if russia_idx else None
@@ -177,7 +156,7 @@ def create_pie_fig(df: pd.DataFrame, year_start=0, year_finish=0, title_info='',
                          height=650,
                          width=1100)
     fig.update_layout(title_x=0.5,
-                      title={"font": {"size": 20, "family": FONT, "color": '#000000'}},
+                      title={"font": {"size": H1_SIZE, "family": FONT, "color": '#000000'}},
                       annotations=[dict(text=f'{df["value"].sum():,} р.',
                                         showarrow=False,
                                         x=0.5,

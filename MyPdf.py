@@ -49,15 +49,15 @@ H1_SIZE = 20
 
 
 class MyPdf(FPDF):
-    def __init__(self, toc=False):
+    def __init__(self, toc=False, toc_pages=1):
         super().__init__(orientation='P', format='A4')
         self.add_font('DejaVu', fname=path.join('fonts', 'DejaVuSansCondensed.ttf'), uni=True)
         self.add_font('DejaVuBold', fname=path.join('fonts', 'DejaVuSansCondensed-Bold.ttf'), uni=True)
         self.add_font('DejaVuItalic', fname=path.join('fonts', 'DejaVuSerif-Italic.ttf'), uni=True)
-        self.add_font("Arial", '', path.join('fonts', 'arial.ttf'), uni=True)
         self.set_font(FONT)
         self.alias_nb_pages()
         self.toc_entries = {} if toc else None
+        self.toc_pages = toc_pages
 
     def set_title_page(self, img_path: str, title_text: str):
         self.add_page()
@@ -78,7 +78,7 @@ class MyPdf(FPDF):
         self.add_page()
 
         if self.toc_entries is not None:
-            self.insert_toc_placeholder(render_toc)
+            self.insert_toc_placeholder(render_toc, pages=self.toc_pages)
 
     def add_image_from_fig(self, new_fig: Figure, title='', description=''):
         with tempfile.NamedTemporaryFile() as tmpfile:
@@ -112,7 +112,7 @@ def render_toc(pdf: MyPdf, _):
     pdf.set_font(FONT, size=H1_SIZE)
     pdf.cell(w=0, h=pdf.font_size*2, txt="Содержание", align="C", ln=1)
 
-    pdf.set_font_size(15)
+    pdf.set_font_size(11)
     for link, (txt, page) in pdf.toc_entries.items():
         dots = ". " * int((pdf.epw - pdf.get_string_width(txt + str(page)))/pdf.get_string_width(". ") - 1.5)
         pdf.cell(w=0, h=pdf.font_size * 1.5, txt=f"{txt}", link=link, align="L")

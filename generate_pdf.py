@@ -3,7 +3,7 @@ from db import MyDB
 
 
 def main():
-    pdf = MyPdf()
+    pdf = MyPdf(toc=True)
     pdf.set_title_page('title.jpg', "")
 
     df_pie = MyDB.get_full_price_with_item_ktru('32.50.13.110-00005159')
@@ -11,8 +11,15 @@ def main():
     pdf.add_toc_entry("картинка")
 
     df_bar = MyDB.get_data_with_period(["32"], 2020, 2021)
-    pdf.add_image_from_fig(create_total_value_bar_fig(df_bar))
+
+    img = create_total_value_bar_fig(df_bar)
+
+    pdf.add_image_from_fig(img)
     pdf.add_toc_entry("ещё")
+    for _ in range(40):
+        pdf.add_image_from_fig(img)
+        pdf.add_toc_entry("и ещё")
+
     pdf.output('test.pdf', 'F')
 
 

@@ -87,7 +87,7 @@ class MyPdf(FPDF):
                 self.multi_cell(pdf_w - 20, self.font_size,
                                 title, border=0, align="C")
             new_fig.write_image(tmpfile.name, format="png")
-            self.set_x(20)
+            self.set_x(5)
             self.image(tmpfile.name, type="png", w=self.epw)
             if len(description) > 0:
                 self.multi_cell(pdf_w - 20, self.font_size,

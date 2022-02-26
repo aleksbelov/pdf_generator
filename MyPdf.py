@@ -1,5 +1,5 @@
 import pandas as pd
-from fpdf import FPDF, HTMLMixin
+from fpdf import FPDF
 import plotly.express as px
 from plotly.graph_objects import Figure
 from os import path
@@ -40,16 +40,15 @@ colors = ['rgb(139, 0, 0)',
           ]
 
 FONT = 'DejaVu'
-FONT_ITALIC = 'DejaVuItalic'
 H1_SIZE = 20
 
 
 class MyPdf(FPDF):
     def __init__(self, toc=False, toc_pages=1):
         super().__init__(orientation='P', format='A4')
-        self.add_font('DejaVu', fname=path.join('fonts', 'DejaVuSansCondensed.ttf'), uni=True)
-        self.add_font('DejaVuBold', fname=path.join('fonts', 'DejaVuSansCondensed-Bold.ttf'), uni=True)
-        self.add_font('DejaVuItalic', fname=path.join('fonts', 'DejaVuSerif-Italic.ttf'), uni=True)
+        self.add_font(FONT, fname=path.join('fonts', 'DejaVuSansCondensed.ttf'), uni=True)
+        self.add_font(FONT, fname=path.join('fonts', 'DejaVuSansCondensed-Bold.ttf'), uni=True, style="B")
+        self.add_font(FONT, fname=path.join('fonts', 'DejaVuSerif-Italic.ttf'), uni=True, style="I")
         self.set_font(FONT)
         self.alias_nb_pages()
         self.toc_entries = {} if toc else None
@@ -59,7 +58,7 @@ class MyPdf(FPDF):
         self.add_page()
         self.image(img_path, w=self.epw)
 
-        self.set_font('DejaVuBold', '', H1_SIZE)
+        self.set_font(FONT, 'B', H1_SIZE)
         self.ln(5)
         self.multi_cell(w=0, h=self.font_size * 2, align='C', txt=f"Данные по государственным закупкам c "
                                                                   f"кодовыми словами {title_text}", ln=1)
@@ -91,7 +90,7 @@ class MyPdf(FPDF):
 
     def footer(self):
         self.set_y(-15)
-        self.set_font(FONT_ITALIC, size=8)
+        self.set_font(FONT, "I", size=8)
         self.cell(0, 10, f'Страница {self.page_no()}/' + '{nb}', 0, 1, 'C')
 
     def add_toc_entry(self, txt):

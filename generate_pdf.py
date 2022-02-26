@@ -4,7 +4,7 @@ from db import MyDB
 
 def main():
     pdf = MyPdf(toc=True)
-    pdf.set_title_page('title.jpg', "")
+    pdf.set_title_page('title.jpg', "Данные по государственным закупкам c кодовыми словами")
 
     df_pie = MyDB.get_full_price_with_item_ktru('32.50.13.110-00005159')
     pdf.add_image_from_fig(create_pie_fig(df_pie))

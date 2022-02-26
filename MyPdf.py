@@ -60,8 +60,7 @@ class MyPdf(FPDF):
 
         self.set_font(FONT, 'B', H1_SIZE)
         self.ln(5)
-        self.multi_cell(w=0, h=self.font_size * 2, align='C', txt=f"Данные по государственным закупкам c "
-                                                                  f"кодовыми словами {title_text}", ln=1)
+        self.multi_cell(w=0, h=self.font_size * 2, align='C', txt=title_text, ln=1)
 
         self.set_font(FONT, '', 14)
         self.multi_cell(w=0, h=14, align='L', txt=datetime.date.today().strftime("%b-%d-%Y"), ln=1)
@@ -77,7 +76,7 @@ class MyPdf(FPDF):
 
     def add_image_from_fig(self, new_fig: Figure, title='', description=''):
         with tempfile.NamedTemporaryFile() as tmpfile:
-            self.set_font("DejaVu", '', 10)
+            self.set_font(FONT, '', 10)
             if len(title) > 0:
                 self.multi_cell(self.epw - 20, self.font_size,
                                 title, border=0, align="C")

@@ -16,9 +16,9 @@ def main():
 
     pdf.add_image_from_fig(img)
     pdf.add_toc_entry("ещё")
-    for _ in range(40):
+    for i in range(5):
         pdf.add_image_from_fig(img)
-        pdf.add_toc_entry("и ещё")
+        pdf.add_toc_entry("и ещё "*(20 + 7*i))
 
     pdf.output('test.pdf', 'F')
 

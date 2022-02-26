@@ -6,10 +6,6 @@ from os import path
 import tempfile
 import datetime
 
-
-pdf_h = 297
-pdf_w = 210
-
 months = {
     1: "Январь",
     2: "Февраль",
@@ -84,13 +80,13 @@ class MyPdf(FPDF):
         with tempfile.NamedTemporaryFile() as tmpfile:
             self.set_font("DejaVu", '', 10)
             if len(title) > 0:
-                self.multi_cell(pdf_w - 20, self.font_size,
+                self.multi_cell(self.epw - 20, self.font_size,
                                 title, border=0, align="C")
             new_fig.write_image(tmpfile.name, format="png")
             self.set_x(5)
             self.image(tmpfile.name, type="png", w=self.epw)
             if len(description) > 0:
-                self.multi_cell(pdf_w - 20, self.font_size,
+                self.multi_cell(self.epw - 20, self.font_size,
                                 description, border=0, align="C")
 
     def footer(self):
@@ -112,11 +108,24 @@ def render_toc(pdf: MyPdf, _):
     pdf.set_font(FONT, size=H1_SIZE)
     pdf.cell(w=0, h=pdf.font_size*2, txt="Содержание", align="C", ln=1)
 
-    pdf.set_font_size(11)
+    pdf.set_font(FONT, size=11)
     for link, (txt, page) in pdf.toc_entries.items():
-        dots = ". " * int((pdf.epw - pdf.get_string_width(txt + str(page)))/pdf.get_string_width(". ") - 1.5)
-        pdf.cell(w=0, h=pdf.font_size * 1.5, txt=f"{txt}", link=link, align="L")
-        pdf.cell(w=0, h=pdf.font_size * 1.5, txt=f"{dots} {page}", link=link, align="R", ln=1)
+        txt = txt.strip()
+        h = pdf.font_size
+        pdf_w = pdf.epw
+        text_w = pdf.get_string_width(txt + ' ')
+        page_num_w = pdf.get_string_width(' 123')
+        dot_w = pdf.get_string_width(". ")
+        # print(pdf_w, text_w, dot_w, page_num_w, text_w % pdf_w, pdf_w - text_w % pdf_w - page_num_w)
+        dots_num = int((pdf_w - ((text_w*1.05) % pdf_w) - page_num_w)/dot_w)
+        dots = " ." * dots_num
+        # print(pdf_w, (text_w % pdf_w) + pdf.get_string_width(dots))
+        y = pdf.get_y() + h * int(text_w // pdf_w)
+        pdf.multi_cell(w=pdf_w - page_num_w, h=h, txt=f"{txt}{dots}", link=link, align="L")
+        pdf.set_y(y)
+        pdf.cell(w=0, h=h, txt=str(page), link=link, ln=1, align="R")
+        pdf.ln()
+        # print("done", txt)
 
 
 def merge_minorities(df: pd.DataFrame) -> pd.DataFrame:

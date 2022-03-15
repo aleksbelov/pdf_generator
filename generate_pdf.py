@@ -2,8 +2,19 @@ from MyPdf import MyPdf, create_total_value_bar_fig, create_pie_fig
 from db import MyDB
 
 
+N = 13
+d = 6
+
+
+def gen_toc_titles():
+    titles = ["картинка", "ещё"]
+    for i in range(N):
+        titles.append("и ещё "*(20 + d*i))
+    return titles
+
+
 def main():
-    pdf = MyPdf(toc=True)
+    pdf = MyPdf(toc=True, toc_titles=gen_toc_titles())
     pdf.set_title_page('title.jpg', "Данные по государственным закупкам c кодовыми словами")
 
     df_pie = MyDB.get_full_price_with_item_ktru('32.50.13.110-00005159')
@@ -16,9 +27,9 @@ def main():
 
     pdf.add_image_from_fig(img)
     pdf.add_toc_entry("ещё")
-    for i in range(5):
+    for i in range(N):
         pdf.add_image_from_fig(img)
-        pdf.add_toc_entry("и ещё "*(20 + 7*i))
+        pdf.add_toc_entry("и ещё "*(20 + d*i))
 
     pdf.output('test.pdf', 'F')
 

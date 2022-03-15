@@ -3,6 +3,7 @@ from fpdf import FPDF
 import plotly.express as px
 from plotly.graph_objects import Figure
 from os import path
+from math import ceil
 import tempfile
 import datetime
 
@@ -44,15 +45,40 @@ H1_SIZE = 20
 
 
 class MyPdf(FPDF):
-    def __init__(self, toc=False, toc_pages=1):
+    def __init__(self, toc: bool = False, toc_titles: list = None):
         super().__init__(orientation='P', format='A4')
         self.add_font(FONT, fname=path.join('fonts', 'DejaVuSansCondensed.ttf'), uni=True)
         self.add_font(FONT, fname=path.join('fonts', 'DejaVuSansCondensed-Bold.ttf'), uni=True, style="B")
         self.add_font(FONT, fname=path.join('fonts', 'DejaVuSerif-Italic.ttf'), uni=True, style="I")
         self.set_font(FONT)
         self.alias_nb_pages()
-        self.toc_entries = {} if toc else None
-        self.toc_pages = toc_pages
+
+        self.toc = toc
+        self.toc_titles = toc_titles
+        self.toc_entries = None
+        self.toc_pages_num = None
+        self.toc_page_num_w = None
+        self.toc_font_sz = None
+
+        if self.toc:
+            self.toc_entries = {}
+            self.toc_pages_num = 1
+
+    def setup_toc(self):
+        self.toc_page_num_w = self.get_string_width(' 123')
+        self.toc_font_sz = 11
+
+        if self.toc_titles is not None:
+            toc_total_lines = 2  # Большое слово "Содержание" тоже что-то занимает
+            self.set_font(FONT, size=self.toc_font_sz)
+            h = self.font_size
+            toc_w = self.epw - self.toc_page_num_w
+
+            for title in self.toc_titles:
+                title = title.strip()
+                toc_total_lines += len(self.multi_cell(w=toc_w, h=h, txt=title, align="L", split_only=True)) + 1
+            self.toc_pages_num = ceil(toc_total_lines / int(self.eph / h))
+            # print(f"Toc: num pages = {self.toc_pages_num}")
 
     def set_title_page(self, img_path: str, title_text: str):
         self.add_page()
@@ -72,20 +98,19 @@ class MyPdf(FPDF):
         self.add_page()
 
         if self.toc_entries is not None:
-            self.insert_toc_placeholder(render_toc, pages=self.toc_pages)
+            self.setup_toc()
+            self.insert_toc_placeholder(render_toc, pages=self.toc_pages_num)
 
     def add_image_from_fig(self, new_fig: Figure, title='', description=''):
         with tempfile.NamedTemporaryFile() as tmpfile:
             self.set_font(FONT, '', 10)
             if len(title) > 0:
-                self.multi_cell(self.epw - 20, self.font_size,
-                                title, border=0, align="C")
+                self.multi_cell(self.epw - 20, self.font_size, title, border=0, align="C")
             new_fig.write_image(tmpfile.name, format="png")
             self.set_x(5)
             self.image(tmpfile.name, type="png", w=self.epw)
             if len(description) > 0:
-                self.multi_cell(self.epw - 20, self.font_size,
-                                description, border=0, align="C")
+                self.multi_cell(self.epw - 20, self.font_size, description, border=0, align="C")
 
     def footer(self):
         self.set_y(-15)
@@ -104,26 +129,29 @@ class MyPdf(FPDF):
 
 def render_toc(pdf: MyPdf, _):
     pdf.set_font(FONT, size=H1_SIZE)
-    pdf.cell(w=0, h=pdf.font_size*2, txt="Содержание", align="C", ln=1)
+    pdf.cell(w=0, h=pdf.font_size*2, txt="Содержание", align="C", ln=0)
 
-    pdf.set_font(FONT, size=11)
+    pdf.set_font(FONT, size=pdf.toc_font_sz)
+    dot_str = " ."
+    h = pdf.font_size
+    page_num_w = pdf.toc_page_num_w
+    dot_w = pdf.get_string_width(dot_str)
+    pdf_w = pdf.epw - page_num_w
+
     for link, (txt, page) in pdf.toc_entries.items():
+        pdf.ln()
+
         txt = txt.strip()
-        h = pdf.font_size
-        pdf_w = pdf.epw
-        text_w = pdf.get_string_width(txt + ' ')
-        page_num_w = pdf.get_string_width(' 123')
-        dot_w = pdf.get_string_width(". ")
-        # print(pdf_w, text_w, dot_w, page_num_w, text_w % pdf_w, pdf_w - text_w % pdf_w - page_num_w)
-        dots_num = int((pdf_w - ((text_w*1.05) % pdf_w) - page_num_w)/dot_w)
-        dots = " ." * dots_num
-        # print(pdf_w, (text_w % pdf_w) + pdf.get_string_width(dots))
-        y = pdf.get_y() + h * int(text_w // pdf_w)
-        pdf.multi_cell(w=pdf_w - page_num_w, h=h, txt=f"{txt}{dots}", link=link, align="L")
+
+        lines = pdf.multi_cell(w=pdf_w, h=h, txt=f"{txt}", link=link, align="L", split_only=True)
+        dots_num = int((pdf_w - pdf.get_string_width(lines[-1])) / dot_w) - 1
+        dots = dot_str * dots_num
+
+        pdf.multi_cell(w=pdf_w, h=h, txt=f"{txt}{dots}", link=link, align="L")
+
+        y = pdf.get_y() - h
         pdf.set_y(y)
         pdf.cell(w=0, h=h, txt=str(page), link=link, ln=1, align="R")
-        pdf.ln()
-        # print("done", txt)
 
 
 def merge_minorities(df: pd.DataFrame) -> pd.DataFrame:

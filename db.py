@@ -63,10 +63,12 @@ class MyDB:
     def get_data_with_period(code_words: list, year_start: int, year_finish: int) -> pd.DataFrame:
         return pd.read_sql(f"""SELECT
                                 SUM(Products.sumRUR) as value,
+                                C2.countryFullName as country,
                                 C.publishMonth as month,
                                 C.publishYear as year
                             FROM Products
                             INNER JOIN Contracts C on Products.contractId = C.id
+                            INNER JOIN Countries C2 on C2.countryCode = Products.countryCode
                             {where_request_part_for_code_words(code_words)} 
                             AND year <= {year_finish} AND year >= {year_start} 
                             GROUP BY year, month

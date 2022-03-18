@@ -3,7 +3,7 @@ from fpdf import FPDF
 import plotly.express as px
 from plotly.graph_objects import Figure
 from os import path
-from math import ceil
+from math import ceil, log10
 import tempfile
 import datetime
 
@@ -223,84 +223,47 @@ def create_pie_fig(df: pd.DataFrame, year_start=0, year_finish=0, title_info='',
     return fig
 
 
-def create_total_value_bar_fig(df: pd.DataFrame) -> Figure:
-    value_label = "Объем рублей"
+def get_value_order(x: int):
+    return {1: 'тыс.',
+            2: 'млн.',
+            3: 'млрд.'}.get(int(log10(x)/3), '')
 
-    df["month"] = df["month"].astype(str)
+
+def get_month_name(x, short_month_name):
+    if short_month_name:
+        return months[x][:3]
+    return months[x]
+
+
+def create_volume_by_month_bar_fig(df: pd.DataFrame,
+                                   description=None,
+                                   short_month_name=True) -> Figure:
+    value_label = f"Объем, {get_value_order(df['value'].max())} рублей"
+
     df["year"] = df["year"].astype(str)
-    df["month"] = df['month'].apply(lambda x: months[int(x)])
+    df["x"] = df["year"] + df["month"].apply(lambda x: f'{x:02}')
+    df["x_label"] = df['month'].apply(lambda x: get_month_name(x, short_month_name)) + ' ' + df["year"]
+    df["month"] = df["month"].astype(str)
+
     fig = px.bar(df,
-                 x="year",
+                 x="x_label",
                  y="value",
                  title="Объем по годам и месяцам",
-                 color='month',
-                 category_orders={
-                     "year": df["year"].sort_values().unique(),
-                     "month": months.values()
-                 },
-                 labels={
-                     "month": "Месяц",
-                     "year": "Год",
-                     "value": value_label
-                 },
-                 height=650,
-                 width=1100)
-    fig.update_yaxes(ticklabelposition="inside")
-    fig.update_layout(title_x=0.5,
-                      title={"font": {"size": 20, "family": FONT, "color": '#000000'}},
-                      font_color="black",
-                      font_size=14)
-    fig.update_traces(textfont_size=20,
-                      textfont_color='#000000')
-    return fig
-
-
-def create_value_bar_fig_by_month_country(df: pd.DataFrame, title_info='', description='') -> Figure:
-    value_label = "Объем"
-    if df["value"].max() / 1000000000 >= 1:
-        value_label += ", млрд. Рублей"
-    elif df["value"].max() / 1000000 >= 1:
-        value_label += ", млн. Рублей"
-    elif df["value"].max() / 1000 >= 1:
-        value_label += ", тыс. Рублей"
-    else:
-        value_label += ", Рублей"
-
-    title_text = ''
-    if title_info:
-        title_text = " для " + title_info
-    fig = px.bar(df,
-                 x="date",
-                 y="value",
                  color='country',
-                 category_orders={
-                     "year": df["year"].sort_values().unique(),
-                     "month": months.values()
-                 },
                  labels={
-                     "country": "Страна",
-                     "date": "Месяц",
-                     "value": value_label
+                     "x_label": "Месяц<br>Описание:  " + description,
+                     "year": "Год",
+                     "value": value_label,
+                     "country": "Страна"
                  },
                  height=650,
                  width=1100)
+    fig.update_xaxes(tickangle=45)
     fig.update_yaxes(ticklabelposition="inside")
-    fig.update_layout(  # title_x=0.5,
-        # title={"font": {"size": 20, "family": FONT, "color": '#000000'}},
-        font_color="black",
-        font_size=14,
-        margin=dict(l=30, r=30, t=5, b=20))
-    fig.update_traces(textfont_size=20,
-                      textfont_color='#000000')
 
-    if len(description) > 0:
-        fig.add_annotation(
-            xref="x domain", yref="y domain",
-            x=-0.1, y=-0.2,
-            text="Описание: " + description,
-            showarrow=False,
-            font=dict(
-                color="black",
-                size=20))
+    fig.update_layout(title_x=0.5,
+                      title_y=0.9,
+                      font_color="black",
+                      font_size=13)
 
     return fig

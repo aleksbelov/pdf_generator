@@ -1,8 +1,10 @@
-from MyPdf import MyPdf, create_total_value_bar_fig, create_pie_fig
+import pandas as pd
+
+from MyPdf import MyPdf, create_volume_by_month_bar_fig, create_pie_fig
 from db import MyDB
 
 
-N = 13
+N = 0
 d = 6
 
 
@@ -13,6 +15,15 @@ def gen_toc_titles():
     return titles
 
 
+def get_df_from_bad_csv():
+    df = pd.read_csv('bad_dataframe.csv',
+                     names=['value', 'country', 'date'],
+                     dtype={'value': int, 'country': str, 'date': str})
+    df['month'] = df['date'].str.split('.', expand=True)[0].astype(int)
+    df['year'] = df['date'].str.split('.', expand=True)[1].astype(int)
+    return df
+
+
 def main():
     pdf = MyPdf(toc=True, toc_titles=gen_toc_titles())
     pdf.set_title_page('title.jpg', "Данные по государственным закупкам c кодовыми словами")
@@ -21,9 +32,10 @@ def main():
     pdf.add_image_from_fig(create_pie_fig(df_pie))
     pdf.add_toc_entry("картинка")
 
-    df_bar = MyDB.get_data_with_period(["32"], 2020, 2021)
+    # df_bar = MyDB.get_data_with_period(["32"], 2020, 2021)
+    df_bar = get_df_from_bad_csv()
 
-    img = create_total_value_bar_fig(df_bar)
+    img = create_volume_by_month_bar_fig(df_bar, description='описание '*10)
 
     pdf.add_image_from_fig(img)
     pdf.add_toc_entry("ещё")

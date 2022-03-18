@@ -241,20 +241,23 @@ def create_volume_by_month_bar_fig(df: pd.DataFrame,
     value_label = f"Объем, {get_value_order(df['value'].max())} рублей"
 
     df["year"] = df["year"].astype(str)
-    df["x"] = df["year"] + df["month"].apply(lambda x: f'{x:02}')
+    df["month_order"] = df["year"] + df["month"].apply(lambda x: f'{x:02}')
     df["x_label"] = df['month'].apply(lambda x: get_month_name(x, short_month_name)) + ' ' + df["year"]
     df["month"] = df["month"].astype(str)
-
+    df = df.sort_values(by=["month_order"])
+    print(df)
     fig = px.bar(df,
                  x="x_label",
                  y="value",
-                 title="Объем по годам и месяцам",
                  color='country',
+                 title="Объем по годам и месяцам",
                  labels={
                      "x_label": "Месяц<br>Описание:  " + description,
-                     "year": "Год",
                      "value": value_label,
                      "country": "Страна"
+                 },
+                 category_orders={
+                     "x_label": df["x_label"]
                  },
                  height=650,
                  width=1100)

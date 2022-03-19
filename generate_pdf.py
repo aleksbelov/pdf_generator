@@ -35,7 +35,7 @@ def main():
     # df_bar = MyDB.get_data_with_period(["32"], 2020, 2021)
     df_bar = get_df_from_bad_csv()
 
-    img = create_volume_by_month_bar_fig(df_bar, description='описание '*10)
+    img = create_volume_by_month_bar_fig(df_bar)
 
     pdf.add_image_from_fig(img)
     pdf.add_toc_entry("ещё")

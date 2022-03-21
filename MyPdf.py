@@ -3,24 +3,9 @@ from fpdf import FPDF
 import plotly.express as px
 from plotly.graph_objects import Figure
 from os import path
-from math import ceil, log10
+from math import ceil
 import tempfile
 import datetime
-
-months = {
-    1: "Январь",
-    2: "Февраль",
-    3: "Март",
-    4: "Апрель",
-    5: "Май",
-    6: "Июнь",
-    7: "Июль",
-    8: "Август",
-    9: "Сентябрь",
-    10: "Октябрь",
-    11: "Ноябрь",
-    12: "Декабрь",
-}
 
 colors = ['rgb(139, 0, 0)',
           'rgb(0, 250, 154)',
@@ -46,7 +31,7 @@ H1_SIZE = 20
 
 class MyPdf(FPDF):
     def __init__(self, toc: bool = False, toc_titles: list = None):
-        super().__init__(orientation='P', format='A4')
+        super().__init__(orientation='L', format='A4')
         self.add_font(FONT, fname=path.join('fonts', 'DejaVuSansCondensed.ttf'), uni=True)
         self.add_font(FONT, fname=path.join('fonts', 'DejaVuSansCondensed-Bold.ttf'), uni=True, style="B")
         self.add_font(FONT, fname=path.join('fonts', 'DejaVuSerif-Italic.ttf'), uni=True, style="I")
@@ -223,50 +208,3 @@ def create_pie_fig(df: pd.DataFrame, year_start=0, year_finish=0, title_info='',
     return fig
 
 
-def get_value_order(x: int):
-    return {1: 'тыс.',
-            2: 'млн.',
-            3: 'млрд.'}.get(int(log10(x)/3), '')
-
-
-def get_month_name(x, short_month_name):
-    if short_month_name:
-        return months[x][:3]
-    return months[x]
-
-
-def create_volume_by_month_bar_fig(df: pd.DataFrame,
-                                   short_month_name=True) -> Figure:
-    value_label = f"Объем, {get_value_order(df['value'].max())} рублей"
-
-    x_label = "Месяц"
-
-    df["year"] = df["year"].astype(str)
-    df["month_order"] = df["year"] + df["month"].apply(lambda x: f'{x:02}')
-    df["x_label"] = df['month'].apply(lambda x: get_month_name(x, short_month_name)) + ' ' + df["year"]
-    df["month"] = df["month"].astype(str)
-    df = df.sort_values(by=["month_order"])
-
-    fig = px.bar(df,
-                 x="x_label",
-                 y="value",
-                 color='country',
-                 labels={
-                     "x_label": x_label,
-                     "value": value_label,
-                     "country": "Страна"
-                 },
-                 category_orders={
-                     "x_label": df["x_label"]
-                 },
-                 height=650,
-                 width=1100)
-    fig.update_xaxes(tickangle=45)
-    fig.update_yaxes(ticklabelposition="inside")
-
-    fig.update_layout(title_x=0.5,
-                      title_y=0.9,
-                      font_color="black",
-                      font_size=13)
-
-    return fig

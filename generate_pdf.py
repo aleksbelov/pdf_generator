@@ -1,6 +1,7 @@
 import pandas as pd
 
-from MyPdf import MyPdf, create_volume_by_month_bar_fig, create_pie_fig
+from MyPdf import MyPdf, create_pie_fig
+from fig import create_volume_by_month_bar_fig
 from db import MyDB
 
 

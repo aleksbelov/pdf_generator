@@ -121,9 +121,11 @@ def create_volume_by_month_bar_fig(df: pd.DataFrame,
                                    height=650,
                                    width=1100,
                                    yaxis2=dict(
+                                       title="Процент РФ",
                                        overlaying="y",
                                        side="right",
-                                       tickformat='.0%'
+                                       tickformat='.0%',
+
                                    ),
                                    legend=dict(
                                        bgcolor='rgba(0, 0, 0, 0)',
@@ -134,7 +136,7 @@ def create_volume_by_month_bar_fig(df: pd.DataFrame,
 
     fig = go_fig()
 
-    if legend_inside:
+    if legend_inside is not None:
         fig.update_layout(legend=dict(x=0,
                                       y=1.0,
                                       bgcolor='rgba(255, 255, 255, 0)',

@@ -38,7 +38,7 @@ def create_volume_by_month_bar_fig(df: pd.DataFrame,
                                    short_month_name=True,
                                    custom_value_label=None,
                                    draw_percentage_line=True,
-                                   legend_inside=False) -> Figure:
+                                   legend_inside=True) -> Figure:
     value_label = f"Объем, {get_value_order(df['value'].max())} рублей"
     if custom_value_label is not None:
         value_label = custom_value_label
@@ -141,7 +141,7 @@ def create_volume_by_month_bar_fig(df: pd.DataFrame,
 
     fig = go_fig()
 
-    if legend_inside is not None:
+    if legend_inside:
         fig.update_layout(
             legend=dict(
                 x=0,

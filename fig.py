@@ -36,8 +36,11 @@ def get_value_order(x: int):
 
 def create_volume_by_month_bar_fig(df: pd.DataFrame,
                                    short_month_name=True,
+                                   custom_value_label=None,
                                    legend_inside=False) -> Figure:
     value_label = f"Объем, {get_value_order(df['value'].max())} рублей"
+    if custom_value_label is not None:
+        value_label = custom_value_label
 
     x_label = "Месяц"
 
@@ -48,7 +51,8 @@ def create_volume_by_month_bar_fig(df: pd.DataFrame,
     df["x_label"] = df['month'].apply(lambda x: get_month_name(x, short_month_name)) + ' ' + df["year"]
     df["month"] = df["month"].astype(str)
     df = df.sort_values(by=["month_order"])
-    df["ru_frac"] = df["value"].where(df["country"] == RF, other=0) / df["value"].sum()
+    df["ru_frac"] = df.groupby('month_order')["value"].apply(lambda x: x / x.sum() if x.all() else x)
+    df["ru_frac"] = df["ru_frac"].where(df["country"] == RF, other=0)
 
     def px_fig():
         bar_and_line = make_subplots(specs=[[{"secondary_y": True}]])
@@ -106,9 +110,10 @@ def create_volume_by_month_bar_fig(df: pd.DataFrame,
             df[dup_mask][df[dup_mask]["country"] == RF]
         ]).sort_values("month_order")
 
+        line_name = "Процент товаров российского производства"
         bar_and_line.add_trace(go.Scatter(x=ru_frac["x_label"],
                                           y=ru_frac["ru_frac"],
-                                          name="Процент РФ",
+                                          name=line_name,
                                           mode="lines+markers",
                                           yaxis="y2"
                                           )
@@ -121,7 +126,7 @@ def create_volume_by_month_bar_fig(df: pd.DataFrame,
                                    height=650,
                                    width=1100,
                                    yaxis2=dict(
-                                       title="Процент РФ",
+                                       title=line_name,
                                        overlaying="y",
                                        side="right",
                                        tickformat='.0%',

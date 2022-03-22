@@ -22,6 +22,8 @@ months = {
     12: "Декабрь",
 }
 
+RF = "Российская Федерация"
+
 
 def get_month_name(x, short_month_name):
     if short_month_name:
@@ -35,6 +37,45 @@ def get_value_order(x: int):
             3: 'млрд.'}.get(int(log10(x) / 3), '')
 
 
+def add_persentage_scatter(fig: Figure, df: pd.DataFrame):
+    dup_mask = df.duplicated(keep=False, subset=["x_label"])
+
+    ru_frac = pd.concat([
+        df[~dup_mask],
+        df[dup_mask][df[dup_mask]["country"] == RF]
+    ]).sort_values("month_order")
+
+    line_name = "Процент товаров российского производства"
+    fig.add_trace(
+        go.Scatter(
+            x=ru_frac["x_label"],
+            y=ru_frac["ru_frac"],
+            name=line_name,
+            mode="lines+markers",
+            yaxis="y2"
+        )
+    )
+
+    fig.update_layout(
+        yaxis2=dict(
+            title=line_name,
+            overlaying="y",
+            side="right",
+            tickformat='.0%'
+        )
+    )
+
+    return fig
+
+
+def get_order_with_rf_first(df: pd.DataFrame):
+    tr_order = df["country"].unique()
+    if RF in tr_order:
+        RF_pos = np.where(tr_order == RF)[0][0]
+        tr_order[0], tr_order[RF_pos] = tr_order[RF_pos], tr_order[0]
+    return tr_order
+
+
 def create_volume_by_month_bar_fig(df: pd.DataFrame,
                                    short_month_name=True,
                                    custom_value_label=None,
@@ -46,8 +87,6 @@ def create_volume_by_month_bar_fig(df: pd.DataFrame,
 
     x_label = "Месяц"
 
-    RF = "Российская Федерация"
-
     df["year"] = df["year"].astype(str)
     df["month_order"] = df["year"] + df["month"].apply(lambda x: f'{x:02}')
     df["x_label"] = df['month'].apply(lambda x: get_month_name(x, short_month_name)) + ' ' + df["year"]
@@ -57,58 +96,44 @@ def create_volume_by_month_bar_fig(df: pd.DataFrame,
     df["ru_frac"] = df["ru_frac"].where(df["country"] == RF, other=0)
 
     def px_fig():
-        bar_and_line = make_subplots(specs=[[{"secondary_y": True}]])
+        bar_and_line = px.bar(df,
+                              x="x_label",
+                              y="value",
+                              color='country',
+                              labels={
+                                  "x_label": x_label,
+                                  "value": value_label,
+                                  "country": "Страна"
+                              },
+                              category_orders={
+                                  "x_label": df["x_label"],
+                                  "country": get_order_with_rf_first(df)
+                              },
+                              # color_discrete_map={RF: 'red'},
+                              text_auto='.2s',
+                              height=650,
+                              width=1100)
+        bar_and_line.update_xaxes(tickangle=45)
 
-        bar = px.bar(df,
-                     x="x_label",
-                     y="value",
-                     color='country',
-                     labels={
-                         "x_label": x_label,
-                         "value": value_label,
-                         "country": "Страна"
-                     },
-                     category_orders={
-                         "x_label": df["x_label"]
-                     },
-                     text_auto='.2s',
-                     height=650,
-                     width=1100)
-        bar.update_xaxes(tickangle=45)
-        bar.update_yaxes(ticklabelposition="inside")
+        bar_and_line.update_traces(textposition="outside")
 
-        bar.update_traces(textposition="outside")
+        bar_and_line.update_layout(title_x=0.5,
+                                   title_y=0.9,
+                                   legend_title='',
+                                   )
+        if not draw_percentage_line:
+            return bar_and_line
 
-        bar.update_layout(title_x=0.5,
-                          title_y=0.9,
-                          font_color="black",
-                          font_size=13)
-
-        scatter = px.line(df,
-                          x="x_label",
-                          y="ru_frac",
-                          markers=True)
-        scatter.update_traces(line_color='#00ff00')
-        bar_and_line.add_traces(data=bar.data + scatter.data)
-        bar_and_line.layout = bar.layout
-
+        bar_and_line = add_persentage_scatter(bar_and_line, df)
         return bar_and_line
 
     def go_fig():
         bar_and_line = go.Figure()
-        tr_order = df["country"].unique()
-        if RF in tr_order:
-            RF_pos = np.where(tr_order == RF)[0][0]
-            tr_order[-1], tr_order[RF_pos] = tr_order[RF_pos], tr_order[-1]
 
-        for country in tr_order:
+        for country in reversed(get_order_with_rf_first(df)):
             cur_values = df.where(df["country"] == country, other=0)["value"]
-            # legendrank = 1000
-            # if country == RF:
-            #     legendrank = 1001
             bar_and_line.add_trace(go.Bar(x=df["x_label"],
                                           y=cur_values,
-                                          # legendrank=legendrank,
                                           name=country))
 
         bar_and_line.update_xaxes(tickangle=45)
@@ -121,32 +146,7 @@ def create_volume_by_month_bar_fig(df: pd.DataFrame,
         if not draw_percentage_line:
             return bar_and_line
 
-        dup_mask = df.duplicated(keep=False, subset=["x_label"])
-
-        ru_frac = pd.concat([
-            df[~dup_mask],
-            df[dup_mask][df[dup_mask]["country"] == RF]
-        ]).sort_values("month_order")
-
-        line_name = "Процент товаров российского производства"
-        bar_and_line.add_trace(
-            go.Scatter(
-                x=ru_frac["x_label"],
-                y=ru_frac["ru_frac"],
-                name=line_name,
-                mode="lines+markers",
-                yaxis="y2"
-            )
-        )
-
-        bar_and_line.update_layout(
-            yaxis2=dict(
-                title=line_name,
-                overlaying="y",
-                side="right",
-                tickformat='.0%'
-            )
-        )
+        bar_and_line = add_persentage_scatter(bar_and_line, df)
         return bar_and_line
 
     fig = go_fig()

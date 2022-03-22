@@ -1,6 +1,7 @@
 from math import log10
 
 import pandas as pd
+import numpy as np
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 from plotly import express as px
@@ -95,12 +96,21 @@ def create_volume_by_month_bar_fig(df: pd.DataFrame,
 
     def go_fig():
         bar_and_line = go.Figure()
-        for country in df["country"].unique():
+        tr_order = df["country"].unique()
+        if RF in tr_order:
+            RF_pos = np.where(tr_order == RF)[0][0]
+            tr_order[-1], tr_order[RF_pos] = tr_order[RF_pos], tr_order[-1]
+
+        for country in tr_order:
             cur_values = df.where(df["country"] == country, other=0)["value"]
+            # legendrank = 1000
+            # if country == RF:
+            #     legendrank = 1001
             bar_and_line.add_trace(go.Bar(x=df["x_label"],
                                           y=cur_values,
+                                          # legendrank=legendrank,
                                           name=country))
-        # bar_and_line.update_traces(textposition="outside")
+
         bar_and_line.update_xaxes(tickangle=45)
         bar_and_line.update_layout(barmode="stack",
                                    xaxis_title=x_label,

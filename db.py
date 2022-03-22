@@ -71,7 +71,7 @@ class MyDB:
                             INNER JOIN Countries C2 on C2.countryCode = Products.countryCode
                             {where_request_part_for_code_words(code_words)} 
                             AND year <= {year_finish} AND year >= {year_start} 
-                            GROUP BY year, month
+                            GROUP BY year, month, country
                             ORDER BY year, month""",
                            con=MyDB.e
                            )

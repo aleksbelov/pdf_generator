@@ -37,6 +37,7 @@ def get_value_order(x: int):
 def create_volume_by_month_bar_fig(df: pd.DataFrame,
                                    short_month_name=True,
                                    custom_value_label=None,
+                                   draw_percentage_line=True,
                                    legend_inside=False) -> Figure:
     value_label = f"Объем, {get_value_order(df['value'].max())} рублей"
     if custom_value_label is not None:
@@ -98,10 +99,17 @@ def create_volume_by_month_bar_fig(df: pd.DataFrame,
             cur_values = df.where(df["country"] == country, other=0)["value"]
             bar_and_line.add_trace(go.Bar(x=df["x_label"],
                                           y=cur_values,
-                                          name=country
-                                          )
-                                   )
+                                          name=country))
         # bar_and_line.update_traces(textposition="outside")
+        bar_and_line.update_xaxes(tickangle=45)
+        bar_and_line.update_layout(barmode="stack",
+                                   xaxis_title=x_label,
+                                   yaxis_title=value_label,
+                                   height=650,
+                                   width=1100,
+                                   legend=dict(bgcolor='rgba(0, 0, 0, 0)'))
+        if not draw_percentage_line:
+            return bar_and_line
 
         dup_mask = df.duplicated(keep=False, subset=["x_label"])
 
@@ -111,42 +119,36 @@ def create_volume_by_month_bar_fig(df: pd.DataFrame,
         ]).sort_values("month_order")
 
         line_name = "Процент товаров российского производства"
-        bar_and_line.add_trace(go.Scatter(x=ru_frac["x_label"],
-                                          y=ru_frac["ru_frac"],
-                                          name=line_name,
-                                          mode="lines+markers",
-                                          yaxis="y2"
-                                          )
-                               )
+        bar_and_line.add_trace(
+            go.Scatter(
+                x=ru_frac["x_label"],
+                y=ru_frac["ru_frac"],
+                name=line_name,
+                mode="lines+markers",
+                yaxis="y2"
+            )
+        )
 
-        bar_and_line.update_xaxes(tickangle=45)
-        bar_and_line.update_layout(barmode="stack",
-                                   xaxis_title=x_label,
-                                   yaxis_title=value_label,
-                                   height=650,
-                                   width=1100,
-                                   yaxis2=dict(
-                                       title=line_name,
-                                       overlaying="y",
-                                       side="right",
-                                       tickformat='.0%',
-
-                                   ),
-                                   legend=dict(
-                                       bgcolor='rgba(0, 0, 0, 0)',
-                                   )
-                                   # font_color="black"
-                                   )
+        bar_and_line.update_layout(
+            yaxis2=dict(
+                title=line_name,
+                overlaying="y",
+                side="right",
+                tickformat='.0%'
+            )
+        )
         return bar_and_line
 
     fig = go_fig()
 
     if legend_inside is not None:
-        fig.update_layout(legend=dict(x=0,
-                                      y=1.0,
-                                      bgcolor='rgba(255, 255, 255, 0)',
-                                      bordercolor='rgba(255, 255, 255, 0)'
-                                      )
-                          )
+        fig.update_layout(
+            legend=dict(
+                x=0,
+                y=1.0,
+                bgcolor='rgba(255, 255, 255, 0)',
+                bordercolor='rgba(255, 255, 255, 0)'
+            )
+        )
 
     return fig

@@ -31,7 +31,7 @@ H1_SIZE = 20
 
 class MyPdf(FPDF):
     def __init__(self, toc: bool = False, toc_titles: list = None):
-        super().__init__(orientation='L', format='A4')
+        super().__init__(orientation='P', format='A4')
         self.add_font(FONT, fname=path.join('fonts', 'DejaVuSansCondensed.ttf'), uni=True)
         self.add_font(FONT, fname=path.join('fonts', 'DejaVuSansCondensed-Bold.ttf'), uni=True, style="B")
         self.add_font(FONT, fname=path.join('fonts', 'DejaVuSerif-Italic.ttf'), uni=True, style="I")
